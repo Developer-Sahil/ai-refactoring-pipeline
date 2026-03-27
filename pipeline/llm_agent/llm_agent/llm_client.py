@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 import os
+import time
 from pathlib import Path
 from typing import Optional
 
@@ -40,7 +41,7 @@ class LLMClient:
 
         self.client = genai.Client(api_key=self.api_key)
 
-    def generate_response(self, prompt: str, max_retries: int = 3) -> str:
+    def generate_response(self, prompt: str, max_retries: int = 10) -> str:
         """
         Send a prompt to the LLM and return the text response.
         Implements basic exponential backoff for rate limits (429/503).

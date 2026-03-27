@@ -41,12 +41,27 @@ def replace_chunk(
     start_idx = start_line - 1
     end_idx = end_line
 
+    # Detect original indentation of the first line
+    original_first_line = lines[start_idx]
+    indentation = ""
+    for char in original_first_line:
+        if char.isspace():
+            indentation += char
+        else:
+            break
+            
     # Prepare the new code lines
-    # Ensure it ends with a single newline to match original formatting
-    new_code_lines = new_code.splitlines()
-    new_code_lines = [line + "\n" for line in new_code_lines]
+    new_raw_lines = new_code.splitlines()
+    new_code_lines = []
     
-    # Optional: Match original indentation. For now, we trust the LLM.
+    for line in new_raw_lines:
+        # If the new line doesn't start with space but original was indented, 
+        # apply the original indentation.
+        if indentation and line and not line[0].isspace():
+            new_code_lines.append(indentation + line + "\n")
+        else:
+            new_code_lines.append(line + "\n")
+    
     # Replace the slice
     lines[start_idx:end_idx] = new_code_lines
 

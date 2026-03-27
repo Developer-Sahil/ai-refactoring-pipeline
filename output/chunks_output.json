@@ -1,119 +1,94 @@
 {
-  "file_name": "C:\\dev\\SDP\\input\\haralick_descriptors.py",
+  "file_name": "C:\\dev\\SDP\\input\\order_service.py",
   "language": "python",
-  "total_chunks": 14,
+  "total_chunks": 9,
   "chunks": [
     {
       "chunk_id": "chunk_1",
-      "type": "function",
-      "name": "root_mean_square_error",
-      "start_line": 4,
-      "end_line": 5,
-      "code": "def root_mean_square_error(a, b):\n    return float(np.sqrt(((a - b) ** 2).mean()))"
+      "type": "class",
+      "name": "OrderItem",
+      "start_line": 17,
+      "end_line": 22,
+      "code": "@dataclass\nclass OrderItem:\n    \"\"\"A single line-item within an order.\"\"\"\n    product_id: str\n    quantity: int\n    unit_price: float"
     },
     {
       "chunk_id": "chunk_2",
-      "type": "function",
-      "name": "normalize_image",
-      "start_line": 7,
-      "end_line": 11,
-      "code": "def normalize_image(img, cap=255.0, dt=np.uint8):\n    mn = np.min(img)\n    mx = np.max(img)\n    norm = (img - mn) / (mx - mn) * cap\n    return norm.astype(dt)"
+      "type": "class",
+      "name": "OrderService",
+      "start_line": 25,
+      "end_line": 82,
+      "code": "class OrderService:\n    \"\"\"Handles order creation, pricing, and lifecycle management.\"\"\"\n\n    def __init__(self, db_conn, tax_rate: float = TAX_RATE):\n        self.db = db_conn\n        self.tax_rate = tax_rate\n        self._cache: dict[str, float] = {}\n\n    def create_order(self, customer_id: str, items: list[OrderItem]) -> dict:\n        \"\"\"\n        Create a new order for *customer_id* containing *items*.\n\n        Returns the persisted order document.\n        \"\"\"\n        subtotal = self._calculate_subtotal(items)\n        tax      = round(subtotal * self.tax_rate, 2)\n        total    = round(subtotal + tax, 2)\n\n        order = {\n            \"customer_id\": customer_id,\n            \"items\":       [vars(i) for i in items],\n            \"subtotal\":    subtotal,\n            \"tax\":         tax,\n            \"total\":       total,\n            \"status\":      \"pending\",\n        }\n        order_id = self.db.insert(\"orders\", order)\n        logger.info(\"Created order %s for customer %s (total: $%.2f)\", order_id, customer_id, total)\n        return {**order, \"order_id\": order_id}\n\n    def _calculate_subtotal(self, items: list[OrderItem]) -> float:\n        \"\"\"Sum the price of all line items.\"\"\"\n        return round(sum(i.quantity * i.unit_price for i in items), 2)\n\n    def cancel_order(self, order_id: str, reason: Optional[str] = None) -> bool:\n        \"\"\"Cancel an existing order.  Returns True on success.\"\"\"\n        order = self.db.find_one(\"orders\", {\"order_id\": order_id})\n        if not order:\n            raise ValueError(f\"Order {order_id} not found\")\n        if order[\"status\"] == \"shipped\":\n            logger.warning(\"Cannot cancel shipped order %s\", order_id)\n            return False\n        self.db.update(\"orders\", {\"order_id\": order_id}, {\"status\": \"cancelled\", \"cancel_reason\": reason})\n        return True\n\n    @staticmethod\n    def format_receipt(order: dict) -> str:\n        \"\"\"Render a plain-text receipt string for *order*.\"\"\"\n        lines = [f\"Order #{order['order_id']}\", \"-\" * 40]\n        for item in order[\"items\"]:\n            lines.append(f\"  {item['product_id']} x{item['quantity']}  ${item['unit_price']:.2f}\")\n        lines += [\n            \"-\" * 40,\n            f\"  Subtotal : ${order['subtotal']:.2f}\",\n            f\"  Tax      : ${order['tax']:.2f}\",\n            f\"  TOTAL    : ${order['total']:.2f}\",\n        ]\n        return \"\\n\".join(lines)"
     },
     {
       "chunk_id": "chunk_3",
-      "type": "function",
-      "name": "normalize_array",
-      "start_line": 13,
-      "end_line": 19,
-      "code": "def normalize_array(arr, cap=1):\n    mn = np.min(arr)\n    mx = np.max(arr)\n    d = mx - mn\n    if d == 0:\n        d = 1\n    return (arr - mn) / d * cap"
+      "type": "method",
+      "name": "__init__",
+      "start_line": 28,
+      "end_line": 31,
+      "code": "    def __init__(self, db_conn, tax_rate: float = TAX_RATE):\n        self.db = db_conn\n        self.tax_rate = tax_rate\n        self._cache: dict[str, float] = {}",
+      "metadata": {
+        "parent_class": "OrderService"
+      }
     },
     {
       "chunk_id": "chunk_4",
-      "type": "function",
-      "name": "grayscale",
-      "start_line": 21,
-      "end_line": 22,
-      "code": "def grayscale(img):\n    return np.dot(img[:, :, :3], [0.299, 0.587, 0.114]).astype(np.uint8)"
+      "type": "method",
+      "name": "create_order",
+      "start_line": 33,
+      "end_line": 53,
+      "code": "    def create_order(self, customer_id: str, items: list[OrderItem]) -> dict:\n        \"\"\"\n        Create a new order for *customer_id* containing *items*.\n\n        Returns the persisted order document.\n        \"\"\"\n        subtotal = self._calculate_subtotal(items)\n        tax      = round(subtotal * self.tax_rate, 2)\n        total    = round(subtotal + tax, 2)\n\n        order = {\n            \"customer_id\": customer_id,\n            \"items\":       [vars(i) for i in items],\n            \"subtotal\":    subtotal,\n            \"tax\":         tax,\n            \"total\":       total,\n            \"status\":      \"pending\",\n        }\n        order_id = self.db.insert(\"orders\", order)\n        logger.info(\"Created order %s for customer %s (total: $%.2f)\", order_id, customer_id, total)\n        return {**order, \"order_id\": order_id}",
+      "metadata": {
+        "parent_class": "OrderService"
+      }
     },
     {
       "chunk_id": "chunk_5",
-      "type": "function",
-      "name": "binarize",
-      "start_line": 24,
-      "end_line": 25,
-      "code": "def binarize(img, th=127.0):\n    return np.where(img > th, 1, 0)"
+      "type": "method",
+      "name": "_calculate_subtotal",
+      "start_line": 55,
+      "end_line": 57,
+      "code": "    def _calculate_subtotal(self, items: list[OrderItem]) -> float:\n        \"\"\"Sum the price of all line items.\"\"\"\n        return round(sum(i.quantity * i.unit_price for i in items), 2)",
+      "metadata": {
+        "parent_class": "OrderService"
+      }
     },
     {
       "chunk_id": "chunk_6",
-      "type": "function",
-      "name": "transform",
-      "start_line": 27,
-      "end_line": 50,
-      "code": "def transform(img, kind, kernel=None):\n    if kernel is None:\n        kernel = np.ones((3, 3))\n\n    if kind == \"erosion\":\n        c = 1\n        fn = np.max\n    else:\n        c = 0\n        fn = np.min\n\n    cx = kernel.shape[0] // 2\n    cy = kernel.shape[1] // 2\n\n    out = np.zeros(img.shape, dtype=np.uint8)\n    pad = np.pad(img, 1, mode=\"constant\", constant_values=c)\n\n    for i in range(cx, pad.shape[0] - cx):\n        for j in range(cy, pad.shape[1] - cy):\n            sub = pad[i-cx:i+cx+1, j-cy:j+cy+1]\n            val = fn(sub[kernel == 1])\n            out[i-cx, j-cy] = val\n\n    return out"
+      "type": "method",
+      "name": "cancel_order",
+      "start_line": 59,
+      "end_line": 68,
+      "code": "    def cancel_order(self, order_id: str, reason: Optional[str] = None) -> bool:\n        \"\"\"Cancel an existing order.  Returns True on success.\"\"\"\n        order = self.db.find_one(\"orders\", {\"order_id\": order_id})\n        if not order:\n            raise ValueError(f\"Order {order_id} not found\")\n        if order[\"status\"] == \"shipped\":\n            logger.warning(\"Cannot cancel shipped order %s\", order_id)\n            return False\n        self.db.update(\"orders\", {\"order_id\": order_id}, {\"status\": \"cancelled\", \"cancel_reason\": reason})\n        return True",
+      "metadata": {
+        "parent_class": "OrderService"
+      }
     },
     {
       "chunk_id": "chunk_7",
-      "type": "function",
-      "name": "opening_filter",
-      "start_line": 52,
-      "end_line": 55,
-      "code": "def opening_filter(img, kernel=None):\n    if kernel is None:\n        np.ones((3, 3))\n    return transform(transform(img, \"dilation\", kernel), \"erosion\", kernel)"
+      "type": "method",
+      "name": "format_receipt",
+      "start_line": 70,
+      "end_line": 82,
+      "code": "    @staticmethod\n    def format_receipt(order: dict) -> str:\n        \"\"\"Render a plain-text receipt string for *order*.\"\"\"\n        lines = [f\"Order #{order['order_id']}\", \"-\" * 40]\n        for item in order[\"items\"]:\n            lines.append(f\"  {item['product_id']} x{item['quantity']}  ${item['unit_price']:.2f}\")\n        lines += [\n            \"-\" * 40,\n            f\"  Subtotal : ${order['subtotal']:.2f}\",\n            f\"  Tax      : ${order['tax']:.2f}\",\n            f\"  TOTAL    : ${order['total']:.2f}\",\n        ]\n        return \"\\n\".join(lines)",
+      "metadata": {
+        "parent_class": "OrderService"
+      }
     },
     {
       "chunk_id": "chunk_8",
       "type": "function",
-      "name": "closing_filter",
-      "start_line": 57,
-      "end_line": 60,
-      "code": "def closing_filter(img, kernel=None):\n    if kernel is None:\n        kernel = np.ones((3, 3))\n    return transform(transform(img, \"erosion\", kernel), \"dilation\", kernel)"
+      "name": "validate_order_items",
+      "start_line": 85,
+      "end_line": 99,
+      "code": "def validate_order_items(items: list[OrderItem]) -> list[str]:\n    \"\"\"\n    Validate a list of order items.\n\n    Returns a list of validation error messages (empty list = valid).\n    \"\"\"\n    errors: list[str] = []\n    for i, item in enumerate(items):\n        if item.quantity <= 0:\n            errors.append(f\"Item {i}: quantity must be positive\")\n        if item.unit_price < 0:\n            errors.append(f\"Item {i}: unit_price cannot be negative\")\n        if not item.product_id.strip():\n            errors.append(f\"Item {i}: product_id is required\")\n    return errors"
     },
     {
       "chunk_id": "chunk_9",
-      "type": "function",
-      "name": "binary_mask",
-      "start_line": 62,
-      "end_line": 67,
-      "code": "def binary_mask(gray, mp):\n    t = gray.copy()\n    f = gray.copy()\n    t[mp == 1] = 1\n    f[mp == 0] = 0\n    return t, f"
-    },
-    {
-      "chunk_id": "chunk_10",
-      "type": "function",
-      "name": "matrix_concurrency",
-      "start_line": 69,
-      "end_line": 82,
-      "code": "def matrix_concurrency(img, coord):\n    m = np.zeros([np.max(img)+1, np.max(img)+1])\n    ox, oy = coord\n\n    for i in range(1, img.shape[0]-1):\n        for j in range(1, img.shape[1]-1):\n            b = img[i, j]\n            o = img[i+ox, j+oy]\n            m[b, o] += 1\n\n    s = np.sum(m)\n    if s == 0:\n        s = 1\n    return m / s"
-    },
-    {
-      "chunk_id": "chunk_11",
-      "type": "function",
-      "name": "haralick_descriptors",
-      "start_line": 84,
-      "end_line": 110,
-      "code": "def haralick_descriptors(m):\n    i, j = np.ogrid[0:m.shape[0], 0:m.shape[1]]\n\n    prod = i * j\n    sub = i - j\n\n    maxp = np.max(m)\n    corr = prod * m\n    energy = m ** 2\n    contrast = m * (sub ** 2)\n\n    dis = m * np.abs(sub)\n    inv = m / (1 + np.abs(sub))\n    homo = m / (1 + (sub ** 2))\n\n    ent = -(m[m > 0] * np.log(m[m > 0]))\n\n    return [\n        maxp,\n        corr.sum(),\n        energy.sum(),\n        contrast.sum(),\n        dis.sum(),\n        inv.sum(),\n        homo.sum(),\n        ent.sum()\n    ]"
-    },
-    {
-      "chunk_id": "chunk_12",
-      "type": "function",
-      "name": "get_descriptors",
-      "start_line": 112,
-      "end_line": 117,
-      "code": "def get_descriptors(masks, coord):\n    arr = []\n    for m in masks:\n        arr.append(haralick_descriptors(matrix_concurrency(m, coord)))\n    arr = np.array(arr)\n    return np.concatenate(arr, axis=None)"
-    },
-    {
-      "chunk_id": "chunk_13",
-      "type": "function",
-      "name": "euclidean",
-      "start_line": 119,
-      "end_line": 120,
-      "code": "def euclidean(a, b):\n    return float(np.sqrt(np.sum((a - b) ** 2)))"
-    },
-    {
-      "chunk_id": "chunk_14",
-      "type": "function",
-      "name": "get_distances",
-      "start_line": 122,
-      "end_line": 132,
-      "code": "def get_distances(desc, base):\n    d = []\n    for x in desc:\n        d.append(euclidean(x, desc[base]))\n\n    d = np.array(d)\n    d = normalize_array(d, 1).tolist()\n\n    e = list(enumerate(d))\n    e.sort(key=lambda x: x[1], reverse=True)\n    return e"
+      "type": "async_function",
+      "name": "fetch_product_prices",
+      "start_line": 102,
+      "end_line": 105,
+      "code": "async def fetch_product_prices(product_ids: list[str], pricing_api) -> dict[str, float]:\n    \"\"\"Asynchronously fetch current prices for all *product_ids*.\"\"\"\n    results = await pricing_api.batch_get(product_ids)\n    return {pid: results[pid][\"price\"] for pid in product_ids if pid in results}"
     }
   ]
 }

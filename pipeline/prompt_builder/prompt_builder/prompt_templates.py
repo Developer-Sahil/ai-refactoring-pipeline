@@ -190,23 +190,23 @@ def build_standard_prompt(ctx: PromptContext) -> str:
     """
     context_line = f"\nContext: {ctx.context_note}\n" if ctx.context_note else ""
 
-    prompt = textwrap.dedent(f"""\
-        You are an expert {ctx.language} engineer performing a targeted code refactoring.
-        Refactor the {ctx.chunk_type} `{ctx.display_name}` while strictly preserving its functionality.
+    template = textwrap.dedent("""\
+        You are an expert {language} engineer performing a targeted code refactoring.
+        Refactor the {chunk_type} `{display_name}` while strictly preserving its functionality.
         {context_line}
-        Location: {ctx.line_range} of `{{file_name}}`
-        Language: {ctx.language}
-        Style guide: {ctx.style_note}
+        Location: {line_range} of `{file_name}`
+        Language: {language}
+        Style guide: {style_note}
 
         ── Goals ────────────────────────────────────────────────────────────────
-        {_bullet(ctx.goals)}
+        {goals}
 
         ── Constraints ──────────────────────────────────────────────────────────
-        {_bullet(ctx.constraints)}
+        {constraints}
 
         ── Original Code ────────────────────────────────────────────────────────
-        ```{ctx.language}
-        {ctx.code}
+        ```{language}
+        {code}
         ```
 
         ── Instructions ─────────────────────────────────────────────────────────
@@ -215,7 +215,18 @@ def build_standard_prompt(ctx: PromptContext) -> str:
         The returned code must be a drop-in replacement for the original.
     """).rstrip()
 
-    return prompt
+    return template.format(
+        language=ctx.language,
+        chunk_type=ctx.chunk_type,
+        display_name=ctx.display_name,
+        context_line=context_line,
+        line_range=ctx.line_range,
+        file_name="{file_name}", # Placeholder for replace in render_prompt()
+        style_note=ctx.style_note,
+        goals=_bullet(ctx.goals),
+        constraints=_bullet(ctx.constraints),
+        code=ctx.code
+    )
 
 
 def build_class_prompt(ctx: PromptContext) -> str:
@@ -225,19 +236,19 @@ def build_class_prompt(ctx: PromptContext) -> str:
     """
     context_line = f"\nContext: {ctx.context_note}\n" if ctx.context_note else ""
 
-    prompt = textwrap.dedent(f"""\
-        You are an expert {ctx.language} engineer performing a targeted class-level refactoring.
-        Refactor the class `{ctx.display_name}` while strictly preserving its public interface and behaviour.
+    template = textwrap.dedent("""\
+        You are an expert {language} engineer performing a targeted class-level refactoring.
+        Refactor the class `{display_name}` while strictly preserving its public interface and behaviour.
         {context_line}
-        Location: {ctx.line_range} of `{{file_name}}`
-        Language: {ctx.language}
-        Style guide: {ctx.style_note}
+        Location: {line_range} of `{file_name}`
+        Language: {language}
+        Style guide: {style_note}
 
         ── Goals ────────────────────────────────────────────────────────────────
-        {_bullet(ctx.goals)}
+        {goals}
 
         ── Constraints ──────────────────────────────────────────────────────────
-        {_bullet(ctx.constraints)}
+        {constraints}
 
         ── Focus Areas ──────────────────────────────────────────────────────────
         - Class-level docstring: describe purpose, key responsibilities, and usage
@@ -246,8 +257,8 @@ def build_class_prompt(ctx: PromptContext) -> str:
         - Method ordering: constructors first, then public, then private/protected
 
         ── Original Code ────────────────────────────────────────────────────────
-        ```{ctx.language}
-        {ctx.code}
+        ```{language}
+        {code}
         ```
 
         ── Instructions ─────────────────────────────────────────────────────────
@@ -256,28 +267,38 @@ def build_class_prompt(ctx: PromptContext) -> str:
         The returned class must be a drop-in replacement for the original.
     """).rstrip()
 
-    return prompt
+    return template.format(
+        language=ctx.language,
+        display_name=ctx.display_name,
+        context_line=context_line,
+        line_range=ctx.line_range,
+        file_name="{file_name}",
+        style_note=ctx.style_note,
+        goals=_bullet(ctx.goals),
+        constraints=_bullet(ctx.constraints),
+        code=ctx.code
+    )
 
 
 def build_interface_prompt(ctx: PromptContext) -> str:
     """Specialised template for interface / protocol definitions."""
-    prompt = textwrap.dedent(f"""\
-        You are an expert {ctx.language} engineer reviewing an interface definition.
-        Refactor the interface `{ctx.display_name}` to improve clarity and documentation.
+    template = textwrap.dedent("""\
+        You are an expert {language} engineer reviewing an interface definition.
+        Refactor the interface `{display_name}` to improve clarity and documentation.
 
-        Location: {ctx.line_range} of `{{file_name}}`
-        Language: {ctx.language}
-        Style guide: {ctx.style_note}
+        Location: {line_range} of `{file_name}`
+        Language: {language}
+        Style guide: {style_note}
 
         ── Goals ────────────────────────────────────────────────────────────────
-        {_bullet(ctx.goals)}
+        {goals}
 
         ── Constraints ──────────────────────────────────────────────────────────
-        {_bullet(ctx.constraints)}
+        {constraints}
 
         ── Original Code ────────────────────────────────────────────────────────
-        ```{ctx.language}
-        {ctx.code}
+        ```{language}
+        {code}
         ```
 
         ── Instructions ─────────────────────────────────────────────────────────
@@ -285,7 +306,16 @@ def build_interface_prompt(ctx: PromptContext) -> str:
         Do not include explanations, markdown prose, or diff output.
     """).rstrip()
 
-    return prompt
+    return template.format(
+        language=ctx.language,
+        display_name=ctx.display_name,
+        line_range=ctx.line_range,
+        file_name="{file_name}",
+        style_note=ctx.style_note,
+        goals=_bullet(ctx.goals),
+        constraints=_bullet(ctx.constraints),
+        code=ctx.code
+    )
 
 
 # ── Registry ─────────────────────────────────────────────────────────────────

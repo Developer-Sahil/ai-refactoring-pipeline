@@ -19,8 +19,11 @@ coverage.xml
 *.json
 !few_shot_examples.json
 output/
-.env
-.venv
+# Environment variables and secrets
+**/.env
+**/.env.*
+**/.venv/
+**/.python-version
 .vscode/
 .idea/
 .DS_Store
