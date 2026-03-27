@@ -1,0 +1,68 @@
+{
+  "_description": "Few-shot before/after refactoring examples used to enrich prompts (optional). Each entry can be injected into a prompt as a concrete demonstration of the expected output quality.",
+  "examples": [
+    {
+      "id": "fs_python_function_01",
+      "language": "python",
+      "chunk_type": "function",
+      "description": "Rename vague variables, add docstring, remove magic number",
+      "before": "def calc(x, n):\n    r = 0\n    for i in range(n):\n        r += x * 1.08\n        x = r\n    return round(r, 2)",
+      "after": "def calculate_compound_interest(principal: float, periods: int) -> float:\n    \"\"\"\n    Calculate the total value after applying 8% compound interest.\n\n    Args:\n        principal: The starting amount.\n        periods:   Number of compounding periods.\n\n    Returns:\n        Total value rounded to two decimal places.\n    \"\"\"\n    INTEREST_RATE = 1.08\n    accumulated = principal\n    for _ in range(periods):\n        accumulated *= INTEREST_RATE\n    return round(accumulated, 2)",
+      "notes": "Renamed args and loop variable, replaced magic number 1.08 with named constant, added type hints and docstring."
+    },
+    {
+      "id": "fs_python_method_01",
+      "language": "python",
+      "chunk_type": "method",
+      "description": "Reduce nesting, add docstring, improve naming",
+      "before": "def proc(self, d):\n    res = []\n    for i in d:\n        if i > 0:\n            if i % 2 == 0:\n                res.append(i * 2)\n    return res",
+      "after": "def process_positive_even_numbers(self, data: list[int]) -> list[int]:\n    \"\"\"\n    Return doubled values for every positive even number in *data*.\n\n    Args:\n        data: A list of integers to filter and transform.\n\n    Returns:\n        A new list containing doubled positive even integers.\n    \"\"\"\n    return [\n        value * 2\n        for value in data\n        if value > 0 and value % 2 == 0\n    ]",
+      "notes": "Merged nested ifs into a single condition inside a list comprehension, added type hints and docstring, improved all names."
+    },
+    {
+      "id": "fs_javascript_function_01",
+      "language": "javascript",
+      "chunk_type": "function",
+      "description": "Replace var with const/let, add JSDoc, improve naming",
+      "before": "function proc(arr) {\n  var res = [];\n  for (var i = 0; i < arr.length; i++) {\n    if (arr[i] != null && arr[i] != undefined) {\n      res.push(arr[i].trim().toLowerCase());\n    }\n  }\n  return res;\n}",
+      "after": "/**\n * Normalise an array of strings by trimming whitespace and lower-casing.\n * Null and undefined entries are silently excluded.\n *\n * @param {Array<string|null|undefined>} rawStrings - Input array to normalise.\n * @returns {string[]} Array of cleaned, lower-case strings.\n */\nfunction normaliseStringArray(rawStrings) {\n  return rawStrings\n    .filter(entry => entry != null)\n    .map(entry => entry.trim().toLowerCase());\n}",
+      "notes": "Replaced var/for-loop with filter+map chain, added JSDoc, improved naming, removed redundant null+undefined check."
+    },
+    {
+      "id": "fs_javascript_class_01",
+      "language": "javascript",
+      "chunk_type": "class",
+      "description": "Add JSDoc, clarify property names, extract helper method",
+      "before": "class C {\n  constructor(n, p) {\n    this.n = n;\n    this.p = p;\n    this.d = [];\n  }\n  add(x) { this.d.push(x); }\n  tot() {\n    let t = 0;\n    for (let i of this.d) t += i * this.p;\n    return t;\n  }\n}",
+      "after": "/**\n * Tracks a collection of quantities and calculates their total cost.\n */\nclass CostTracker {\n  /**\n   * @param {string} name       - Descriptive label for this tracker.\n   * @param {number} unitPrice  - Price applied to each recorded quantity.\n   */\n  constructor(name, unitPrice) {\n    this.name = name;\n    this.unitPrice = unitPrice;\n    this.quantities = [];\n  }\n\n  /** Record an additional quantity entry. */\n  addQuantity(quantity) {\n    this.quantities.push(quantity);\n  }\n\n  /** @returns {number} Sum of all quantities multiplied by the unit price. */\n  get totalCost() {\n    return this.quantities.reduce((sum, qty) => sum + qty * this.unitPrice, 0);\n  }\n}",
+      "notes": "Renamed class and all properties to be self-documenting, converted tot() to a getter, replaced for-of with reduce, added JSDoc."
+    },
+    {
+      "id": "fs_typescript_interface_01",
+      "language": "typescript",
+      "chunk_type": "interface",
+      "description": "Add TSDoc comments, clarify method signatures",
+      "before": "interface Repo {\n  get(id: string): Promise<any>;\n  save(obj: any): Promise<any>;\n  del(id: string): Promise<void>;\n  list(): Promise<any[]>;\n}",
+      "after": "/** Generic CRUD repository contract. Replace `T` with your domain type. */\ninterface Repository<T> {\n  /** Retrieve a single record by its unique identifier. Returns null if not found. */\n  findById(id: string): Promise<T | null>;\n\n  /** Persist a record, creating or updating as needed. Returns the saved entity. */\n  save(entity: T): Promise<T>;\n\n  /** Permanently remove the record with the given *id*. */\n  deleteById(id: string): Promise<void>;\n\n  /** Return all records in the collection. */\n  findAll(): Promise<T[]>;\n}",
+      "notes": "Made generic with type parameter T, renamed methods to be explicit (findById, deleteById), added TSDoc on every signature."
+    },
+    {
+      "id": "fs_go_function_01",
+      "language": "go",
+      "chunk_type": "function",
+      "description": "Add godoc comment, improve error message, clarify variable names",
+      "before": "func proc(s string) (string, error) {\n\tif s == \"\" {\n\t\treturn \"\", fmt.Errorf(\"bad\")\n\t}\n\tr := strings.TrimSpace(s)\n\tr = strings.ToLower(r)\n\treturn r, nil\n}",
+      "after": "// NormaliseInput trims surrounding whitespace and lower-cases s.\n// It returns an error if s is empty.\nfunc NormaliseInput(s string) (string, error) {\n\tif s == \"\" {\n\t\treturn \"\", fmt.Errorf(\"normaliseInput: input string must not be empty\")\n\t}\n\tnormalised := strings.ToLower(strings.TrimSpace(s))\n\treturn normalised, nil\n}",
+      "notes": "Added godoc comment, renamed to exported PascalCase, chained the string operations, improved error message."
+    },
+    {
+      "id": "fs_java_method_01",
+      "language": "java",
+      "chunk_type": "method",
+      "description": "Replace raw loop with streams, add Javadoc, rename variables",
+      "before": "public List<String> filter(List<String> l, String p) {\n    List<String> r = new ArrayList<>();\n    for (String s : l) {\n        if (s != null && s.contains(p)) {\n            r.add(s.trim());\n        }\n    }\n    return r;\n}",
+      "after": "/**\n * Filters a list of strings, returning only those that contain the given pattern.\n * Null entries are silently excluded; matching entries are trimmed.\n *\n * @param candidates  the list of strings to search through\n * @param pattern     the substring that must be present in each result\n * @return            a new list of trimmed strings that contain {@code pattern}\n */\npublic List<String> filterByPattern(List<String> candidates, String pattern) {\n    return candidates.stream()\n        .filter(s -> s != null && s.contains(pattern))\n        .map(String::trim)\n        .collect(Collectors.toList());\n}",
+      "notes": "Replaced imperative loop with stream pipeline, added full Javadoc, renamed all variables to be descriptive."
+    }
+  ]
+}
