@@ -25,91 +25,106 @@ from typing import Callable, Optional
 
 _GOALS_BY_CHUNK_TYPE: dict[str, list[str]] = {
     "class": [
-        "Improve class and attribute naming to reflect their purpose clearly",
-        "Add or improve docstrings at the class and method level",
+        "Improve class and attribute naming to reflect their purpose clearly (intent-revealing names)",
+        "Add comprehensive docstrings following language conventions (e.g., PEP 257 for Python)",
+        "Ensure the class has a single, well-defined responsibility (Single Responsibility Principle)",
         "Simplify complex methods — extract helpers where appropriate",
-        "Ensure consistent use of access modifiers / visibility conventions",
-        "Improve readability of the overall class structure",
+        "Ensure consistent use of access modifiers and visibility conventions",
+        "Improve readability and maintainability of the overall class structure",
+        "Add inline comments to explain complex or non-obvious internal logic",
     ],
     "function": [
-        "Improve function and parameter naming to express intent",
-        "Add or improve the docstring (purpose, args, returns, raises)",
-        "Simplify conditional logic and reduce nesting where possible",
-        "Replace magic numbers or strings with named constants",
+        "Improve function and parameter naming to express intent clearly",
+        "Add comprehensive docstrings summarizing purpose, parameters, and return values",
+        "Simplify conditional logic and reduce nesting (e.g., using guard clauses)",
+        "Replace magic numbers or strings with named constants or configuration",
         "Improve readability without altering the function signature",
+        "Ensure proper error handling and input validation (Fail-Fast principle)",
+        "Add type hints/annotations where applicable (e.g., Python 3.9+)",
+        "Preserve and enhance internal comments that explain 'why' instead of 'what'",
     ],
     "async_function": [
-        "Improve function and parameter naming to express intent",
-        "Add or improve the docstring (purpose, args, returns, raises)",
-        "Ensure async/await usage is idiomatic and error-handling is robust",
+        "Improve function and parameter naming to express intent clearly",
+        "Add comprehensive docstrings including async behavior details",
+        "Ensure async/await usage is idiomatic and error-handling is robust (try/except blocks)",
         "Simplify conditional logic and reduce nesting where possible",
         "Replace magic numbers or strings with named constants",
+        "Add type hints/annotations where applicable",
+        "Optimize for concurrency where obvious (avoid unnecessary sequential awaits)",
     ],
     "method": [
-        "Improve method and parameter naming to express intent",
-        "Add or improve the docstring (purpose, args, returns)",
-        "Simplify conditional logic and reduce nesting where possible",
-        "Ensure the method has a single, clear responsibility",
+        "Improve method and parameter naming to express intent clearly",
+        "Add descriptive docstrings summarizing purpose and return values",
+        "Simplify conditional logic and reduce nesting using guard clauses",
+        "Ensure the method has a single, clear responsibility (SRP)",
         "Improve readability without altering the method signature",
+        "Add type hints/annotations where applicable",
+        "Preserve and enhance internal comments that explain complex logic",
     ],
     "async_method": [
         "Improve method and parameter naming to express intent",
-        "Add or improve the docstring (purpose, args, returns)",
+        "Add comprehensive docstrings summarizing purpose and async behavior",
         "Ensure async/await usage is idiomatic and error-handling is robust",
         "Simplify conditional logic and reduce nesting where possible",
         "Ensure the method has a single, clear responsibility",
+        "Add type hints/annotations where applicable",
     ],
     "interface": [
         "Improve interface and method naming to express their contract clearly",
-        "Add or improve documentation for each method signature",
+        "Add comprehensive documentation for method signatures and expected behavior",
         "Ensure the interface follows the Interface Segregation Principle",
         "Make the interface easier to implement and understand",
     ],
     "struct": [
-        "Improve field naming to reflect the data each field holds",
-        "Add or improve struct-level and field-level documentation",
-        "Group related fields logically",
+        "Improve field naming to reflect the data each field holds precisely",
+        "Add field-level documentation explaining units, ranges, or usage",
+        "Group related fields logically to improve cohesion",
         "Ensure naming follows language conventions",
+        "Add type hints/annotations where applicable",
     ],
     "enum": [
         "Improve enum and member naming to be self-documenting",
-        "Add or improve documentation for the enum type and each member",
-        "Ensure naming follows language conventions (UPPER_SNAKE for constants, etc.)",
+        "Add documentation for the enum type and each individual member",
+        "Ensure naming follows language conventions (e.g., UPPER_SNAKE for constants)",
     ],
     "constructor": [
-        "Improve parameter naming and default values",
-        "Add or improve the constructor docstring",
-        "Simplify initialization logic where possible",
+        "Improve parameter naming and provide sensible default values",
+        "Add comprehensive constructor docstrings",
+        "Simplify initialization logic and ensure internal state is valid",
         "Ensure validation is clear and fails fast on bad input",
+        "Add type hints/annotations where applicable",
     ],
     "namespace": [
-        "Improve namespace organisation and naming",
-        "Add documentation for the namespace's purpose",
-        "Ensure public vs. private boundaries are clear",
+        "Improve namespace organization and naming",
+        "Add documentation for the namespace's purpose and contents",
+        "Ensure public vs. private boundaries are clear and idiomatic",
     ],
     "module": [
-        "Improve top-level naming and organisation",
-        "Add or improve module-level documentation",
-        "Simplify top-level logic",
+        "Improve top-level naming, organization, and exports",
+        "Add comprehensive module-level docstrings (purpose, usage examples)",
+        "Simplify top-level logic and ensure clean initialization",
+        "Improve imports organization (e.g., alphabetical, grouped)",
     ],
     # Fallback — used when chunk type is not in the map above
     "_default": [
         "Improve naming to be descriptive and intention-revealing",
-        "Add or improve inline documentation",
+        "Add comprehensive documentation and inline comments",
         "Simplify complex logic and reduce nesting where possible",
         "Replace magic values with named constants",
-        "Improve readability and maintainability",
+        "Improve readability, maintainability, and diagnostic clarity",
+        "Follow Clean Code best practices (SOLID, DRY, KISS)",
     ],
 }
 
 _CONSTRAINTS_COMMON: list[str] = [
-    "Do NOT change the observable behaviour of the code",
+    "Do NOT change the observable behaviour of the code (Functional Parity)",
     "Do NOT rename public APIs, exported symbols, or method signatures",
-    "Do NOT remove or reorder imports / dependencies",
+    "Do NOT remove or reorder imports / dependencies unless they are unused",
     "Do NOT introduce new external dependencies",
     "Do NOT add new logic, features, or side-effects",
-    "Preserve all existing comments that carry meaningful context",
+    "Preserve AND ENHANCE all existing comments that carry meaningful context",
     "Maintain the indentation style of the surrounding file",
+    "Generated code must be syntactically correct and follow the provided style guide",
 ]
 
 _CONSTRAINTS_BY_CHUNK_TYPE: dict[str, list[str]] = {
@@ -144,6 +159,7 @@ class PromptContext:
     code:        str               # verbatim source
     start_line:  int
     end_line:    int
+    full_file_content: Optional[str] = None # Entire contents of the source file
     metadata:    dict = field(default_factory=dict)   # e.g. {"parent_class": "Foo"}
 
     # Derived helpers
@@ -190,13 +206,27 @@ def build_standard_prompt(ctx: PromptContext) -> str:
     """
     context_line = f"\nContext: {ctx.context_note}\n" if ctx.context_note else ""
 
-    template = textwrap.dedent("""\
-        You are an expert {language} engineer performing a targeted code refactoring.
-        Refactor the {chunk_type} `{display_name}` while strictly preserving its functionality.
-        {context_line}
-        Location: {line_range} of `{file_name}`
-        Language: {language}
-        Style guide: {style_note}
+    template = textwrap.dedent("""
+        ─ ─ Final Goal ───────────────────────────────────────────────────────────
+        Transform this code into clean, well-documented, and industrial-grade software
+        that follows modern system design principles (SOLID, DRY, KISS).
+
+        ── Global Architectural Context ──────────────────────────────────────────
+        The following is the full content of `{file_name}` for context:
+        ```{language}
+        {full_file_content}
+        ```
+
+        ── Target Chunk to Refactor ──────────────────────────────────────────────
+        Chunk ID: {chunk_id}
+        Type: {chunk_type}
+        Name: {display_name}
+        Location: {line_range}
+
+        ── Original Chunk Code ──────────────────────────────────────────────────
+        ```{language}
+        {code}
+        ```
 
         ── Goals ────────────────────────────────────────────────────────────────
         {goals}
@@ -204,16 +234,13 @@ def build_standard_prompt(ctx: PromptContext) -> str:
         ── Constraints ──────────────────────────────────────────────────────────
         {constraints}
 
-        ── Original Code ────────────────────────────────────────────────────────
-        ```{language}
-        {code}
-        ```
-
         ── Instructions ─────────────────────────────────────────────────────────
-        Return ONLY the refactored code block.
+        Refactor ONLY the target chunk `{display_name}`. 
+        Use the global context to ensure your changes are consistent with the rest of the file.
+        Return ONLY the refactored code block for this specific chunk.
         Do not include explanations, markdown prose, or diff output.
-        The returned code must be a drop-in replacement for the original.
-    """).rstrip()
+        The returned code must be a drop-in replacement for the original chunk.
+    """).strip()
 
     return template.format(
         language=ctx.language,
@@ -221,11 +248,13 @@ def build_standard_prompt(ctx: PromptContext) -> str:
         display_name=ctx.display_name,
         context_line=context_line,
         line_range=ctx.line_range,
-        file_name="{file_name}", # Placeholder for replace in render_prompt()
+        file_name="{file_name}",
         style_note=ctx.style_note,
         goals=_bullet(ctx.goals),
         constraints=_bullet(ctx.constraints),
-        code=ctx.code
+        code=ctx.code,
+        full_file_content=ctx.full_file_content or "Not provided.",
+        chunk_id=ctx.chunk_id
     )
 
 
@@ -251,9 +280,9 @@ def build_class_prompt(ctx: PromptContext) -> str:
         {constraints}
 
         ── Focus Areas ──────────────────────────────────────────────────────────
-        - Class-level docstring: describe purpose, key responsibilities, and usage
-        - Method-level docstrings: describe what each method does, params, and return value
-        - Attribute naming: ensure each attribute name clearly communicates what it holds
+        - Class-level docstring: briefly describe purpose and responsibility (max 2 lines)
+        - Method-level docstrings: briefly summarize what each method does (one line)
+        - Attribute naming: ensure name clarity over verbose comments
         - Method ordering: constructors first, then public, then private/protected
 
         ── Original Code ────────────────────────────────────────────────────────
@@ -395,3 +424,80 @@ def render_prompt(ctx: PromptContext, file_name: str) -> str:
     builder = template_registry.resolve(ctx.language, ctx.chunk_type)
     raw     = builder(ctx)
     return raw.replace("{file_name}", file_name)
+
+
+def build_batch_prompt(
+    contexts: list[PromptContext], 
+    file_name: str,
+    few_shot_example: Optional[dict] = None
+) -> str:
+    """
+    Template for refactoring multiple chunks in a single request.
+    Use this to save API quota.
+    """
+    language = contexts[0].language
+    style_note = contexts[0].style_note
+    
+    chunk_blocks = []
+    for ctx in contexts:
+        block = textwrap.dedent(f"""\
+            ── Chunk: {ctx.chunk_id} ({ctx.chunk_type}: {ctx.display_name}) ──
+            Location: {ctx.line_range}
+            ```{language}
+            {ctx.code}
+            ```
+        """)
+        chunk_blocks.append(block)
+        
+    all_chunks_text = "\n\n".join(chunk_blocks)
+    
+    template = textwrap.dedent("""\
+        ── Global Architectural Context ──────────────────────────────────────────
+        The following is the full content of `{file_name}` for context:
+        ```{language}
+        {full_file_content}
+        ```
+
+        ── target Chunks to Refactor ─────────────────────────────────────────────
+        Refactor the following {num_chunks} code chunks from `{file_name}`.
+
+        ── Original Chunks ──────────────────────────────────────────────────────
+        {all_chunks_text}
+
+        ── Instructions ─────────────────────────────────────────────────────────
+        For EACH chunk, return the refactored version wrapped in these exact delimiters:
+        
+        <chunk id="chunk_id_here">
+        [Your refactored code for this chunk here]
+        </chunk>
+
+        Example format:
+        <chunk id="chunk_1">
+        def my_function():
+            pass
+        </chunk>
+        
+        Do not include any prose, explanations, or additional text outside these tags.
+    """).rstrip()
+
+    prompt = template.format(
+        language=language,
+        num_chunks=len(contexts),
+        file_name=file_name,
+        style_note=style_note,
+        all_chunks_text=all_chunks_text,
+        full_file_content=contexts[0].full_file_content or "Not provided."
+    )
+
+    if few_shot_example:
+        separator = "\n\n── Few-Shot Example ─────────────────────────────────────────────────────"
+        block = (
+            f"{separator}\n"
+            f"The following is an example of the quality and style of refactoring expected for individual chunks.\n\n"
+            f"BEFORE:\n```{language}\n{few_shot_example['before']}\n```\n\n"
+            f"AFTER:\n```{language}\n{few_shot_example['after']}\n```\n"
+            f"Note: {few_shot_example.get('notes', '')}"
+        )
+        prompt += block
+
+    return prompt

@@ -39,20 +39,38 @@ The easiest way to run the pipeline is using the orchestrator:
 python orchestrate.py input/order_service.py
 ```
 
-### Advanced Options
-```bash
-# Specify an LLM model
-python orchestrate.py input/order_service.py --model gemini-2.0-flash
+### Advanced Processing Options
 
-# Refactor the file in-place (overwrites the original file)
-python orchestrate.py input/order_service.py --in-place
+```bash
+# Refactor an entire directory (batch mode)
+python orchestrate.py input/
+
+# Use batching to save API Quota (RPD)
+# Processes 5 chunks in a single LLM request (default: 3)
+python orchestrate.py input/order_service.py --batch-size 5
+
+# Control request throttling (avoid 429 errors)
+# Wait 10 seconds between each LLM call
+python orchestrate.py input/order_service.py --delay 10.0
+
+# Specify an LLM model and refactor in-place
+python orchestrate.py input/order_service.py --model gemini-2.0-flash --in-place
 ```
+
+---
+
+## ⚡ API Quota Optimization
+
+To survive strict free-tier limits (e.g., **20 Requests Per Day**), the pipeline implements two key features:
+1.  **Batching**: Combines multiple functions into one prompt to minimize RPD usage.
+2.  **Server-Aware Throttling**: Automatically parses `retryDelay` from API errors and waits precisely the time required by the server.
 
 ---
 
 ## 📜 Project Documentation
 
 *   **General History**: [LOG.md](file:///c:/dev/SDP/LOG.md)
+*   **System Design (HLD/LLD)**: [SYSTEM_DESIGN.md](file:///c:/dev/SDP/SYSTEM_DESIGN.md)
 *   **Stage 1 - cAST**: [pipeline/cast/README.md](file:///c:/dev/SDP/pipeline/cast/README.md)
 *   **Stage 2 - Prompt Builder**: [pipeline/prompt_builder/README.md](file:///c:/dev/SDP/pipeline/prompt_builder/README.md)
 *   **Stage 3 - LLM Agent**: [pipeline/llm_agent/README.md](file:///c:/dev/SDP/pipeline/llm_agent/README.md)

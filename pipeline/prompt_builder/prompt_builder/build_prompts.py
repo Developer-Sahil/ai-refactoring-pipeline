@@ -29,7 +29,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
-from prompt_builder.prompt_templates import PromptContext, render_prompt
+from prompt_builder.prompt_templates import PromptContext, render_prompt, build_batch_prompt
 from prompt_builder.few_shot_loader  import FewShotLoader
 
 
@@ -61,7 +61,7 @@ def _write_prompts(payload: dict, path: Path) -> None:
 
 # ── Chunk → PromptContext ──────────────────────────────────────────────────────
 
-def _chunk_to_context(chunk: dict[str, Any], language: str) -> PromptContext:
+def _chunk_to_context(chunk: dict[str, Any], language: str, full_file_content: Optional[str] = None) -> PromptContext:
     """Convert a raw cAST chunk dict to a typed :class:`PromptContext`."""
     return PromptContext(
         chunk_id   = chunk["chunk_id"],
@@ -71,20 +71,43 @@ def _chunk_to_context(chunk: dict[str, Any], language: str) -> PromptContext:
         code       = chunk.get("code", ""),
         start_line = chunk.get("start_line", 0),
         end_line   = chunk.get("end_line", 0),
+        full_file_content = full_file_content,
         metadata   = chunk.get("metadata", {}),
     )
 
 
 # ── Prompt record ─────────────────────────────────────────────────────────────
 
+def _build_batch_prompt_record(
+    chunks: list[dict[str, Any]],
+    language: str,
+    file_name: str,
+    few_shot_loader: FewShotLoader,
+    full_file_content: Optional[str] = None,
+) -> dict[str, Any]:
+    """Return a single prompt record covering multiple chunks."""
+    contexts = [_chunk_to_context(c, language, full_file_content) for c in chunks]
+    
+    # Use the first chunk's type to fetch a relevant few-shot example
+    example = few_shot_loader.get(language, contexts[0].chunk_type)
+    prompt = build_batch_prompt(contexts, file_name, few_shot_example=example)
+    
+    return {
+        "is_batch": True,
+        "chunk_ids": [c["chunk_id"] for c in chunks],
+        "chunks": chunks, # Keep original chunk data for the agent
+        "prompt": prompt,
+    }
+
 def _build_prompt_record(
     chunk: dict[str, Any],
     language: str,
     file_name: str,
     few_shot_loader: FewShotLoader,
+    full_file_content: Optional[str] = None,
 ) -> dict[str, Any]:
     """Return the full prompt record for a single chunk."""
-    ctx    = _chunk_to_context(chunk, language)
+    ctx    = _chunk_to_context(chunk, language, full_file_content)
     prompt = render_prompt(ctx, file_name)
 
     # Optionally append a few-shot example if one exists for this (language, type)
@@ -93,13 +116,14 @@ def _build_prompt_record(
         prompt = _append_few_shot(prompt, example, language)
 
     return {
+        "is_batch":     False,
         "chunk_id":      ctx.chunk_id,
         "chunk_type":    ctx.chunk_type,
         "name":          ctx.name,
         "start_line":    ctx.start_line,
         "end_line":      ctx.end_line,
-        "prompt":        prompt,
         "original_code": ctx.code,
+        "prompt":        prompt,
     }
 
 
@@ -124,6 +148,7 @@ def run(
     few_shot_path: Optional[str | Path] = None,
     *,
     verbose: bool = False,
+    batch_size: int = 1,
 ) -> Path:
     """
     Execute the full Prompt Builder stage.
@@ -158,6 +183,19 @@ def run(
     file_name = data["file_name"]
     language  = data["language"]
     chunks    = data["chunks"]
+    
+    # Attempt to load the full source file for context
+    full_file_content = None
+    source_path = Path(file_name)
+    if source_path.exists():
+        try:
+            full_file_content = source_path.read_text(encoding="utf-8")
+            log(f"Context   : Loaded {len(full_file_content)} chars from {source_path.name}")
+        except Exception as e:
+            log(f"Warning   : Could not read source file for context: {e}")
+    else:
+        log(f"Warning   : Source file not found for context: {file_name}")
+
     log(f"File      : {file_name}  |  Language : {language}  |  Chunks : {len(chunks)}")
 
     # ── 2. Load few-shot examples ────────────────────────────────────────────
@@ -167,13 +205,23 @@ def run(
     few_shot_loader = FewShotLoader(fs_path)
     log(f"Few-shots : {few_shot_loader.count} examples loaded from {fs_path.name}")
 
-    # ── 3. Build one prompt record per chunk ─────────────────────────────────
-    log("Building prompts …")
+    # ── 3. Build prompt records (batched or single) ──────────────────────────
+    log(f"Building prompts (batch_size={batch_size}) …")
     prompt_records: list[dict] = []
-    for chunk in chunks:
-        record = _build_prompt_record(chunk, language, file_name, few_shot_loader)
-        prompt_records.append(record)
-        log(f"  ✓ {record['chunk_id']:10s}  [{record['chunk_type']:15s}]  {record['name'] or '(anonymous)'}")
+    
+    if batch_size > 1:
+        # Group chunks into batches
+        for i in range(0, len(chunks), batch_size):
+            batch = chunks[i : i + batch_size]
+            record = _build_batch_prompt_record(batch, language, file_name, few_shot_loader, full_file_content)
+            prompt_records.append(record)
+            log(f"  ✓ Batch {len(prompt_records)}: [{', '.join(record['chunk_ids'])}]")
+    else:
+        # One prompt per chunk
+        for chunk in chunks:
+            record = _build_prompt_record(chunk, language, file_name, few_shot_loader, full_file_content)
+            prompt_records.append(record)
+            log(f"  ✓ {record['chunk_id']:10s}  [{record['chunk_type']:15s}]  {record['name'] or '(anonymous)'}")
 
     # ── 4. Assemble output payload ───────────────────────────────────────────
     payload = {
@@ -225,6 +273,12 @@ def _build_arg_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Print progress information",
     )
+    p.add_argument(
+        "--batch-size",
+        type=int,
+        default=1,
+        help="Number of chunks to group into a single prompt (default: 1)",
+    )
     return p
 
 
@@ -236,6 +290,7 @@ def main(argv: list[str] | None = None) -> int:
             output_path   = args.output,
             few_shot_path = args.few_shot,
             verbose       = args.verbose,
+            batch_size    = args.batch_size,
         )
         print(f"Prompts written to: {out}")
         return 0

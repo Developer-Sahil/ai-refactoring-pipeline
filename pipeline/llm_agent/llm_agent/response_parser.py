@@ -24,3 +24,27 @@ def parse_code_block(response_text: str) -> str:
     
     # Fallback: if the LLM didn't use backticks, just return the raw text
     return response_text.strip()
+def parse_batched_blocks(response_text: str) -> dict[str, str]:
+    """
+    Extract multiple refactored chunks from a single response.
+    Expects format: <chunk id="chunk_1">[CODE]</chunk>
+    Returns a mapping of {chunk_id: code}.
+    """
+    results: dict[str, str] = {}
+    
+    # Matches <chunk id="NAME">...内容...</chunk>
+    pattern = re.compile(r'<chunk id="([^"]+)">\s*(.*?)\s*</chunk>', re.DOTALL)
+    matches = pattern.finditer(response_text)
+    
+    for match in matches:
+        chunk_id = match.group(1)
+        content = match.group(2).strip()
+        
+        # If the LLM wrapped the content in markdown within the XML tags, extract it
+        inner_block_match = re.search(r"```(?:\w+)?\n(.*?)\n```", content, re.DOTALL)
+        if inner_block_match:
+            content = inner_block_match.group(1).strip()
+        
+        results[chunk_id] = content
+        
+    return results
