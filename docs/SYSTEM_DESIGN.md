@@ -9,7 +9,6 @@ graph TD
         B --> C{Chunk Detection}
         C -->|Class/Method| D[Extract Code Segment]
         C -->|Function| D
-        C -->|Nested Chunks| E[Mark Relationship]
         D --> F[chunks_output.json]
     end
 
@@ -17,22 +16,25 @@ graph TD
         F --> G[Load Full File Context]
         G --> H[Template Injection]
         H --> I[Persona: Senior Architect]
-        I --> J[Inject Few-Shot Examples]
-        J --> K[prompts.json]
+        I --> K[prompts.json]
     end
 
     subgraph "Stage 3: LLM Agent (Execution)"
         K --> L[Nested Chunk Filter]
-        L --> M[Batched/Individual Prompt]
-        M --> N[Gemini 2.5 Flash API]
-        N --> O[XML Delimiter Parsing]
-        O --> P[Bottom-Up Code Reassembly]
+        L --> M[Gemini 2.5 Flash API]
+        M --> P[Bottom-Up Code Reassembly]
         P --> Q[Output .refactored.py]
     end
 
+    subgraph "Stage 4: Validator (Verification)"
+        Q --> V1[Syntax Validation]
+        V1 --> V2[AST Integrity Comparison]
+        V2 --> V3[PEP8 Linting Check]
+        V3 --> W[validation_report.txt]
+    end
+
     subgraph "Infrastructure"
-        R[llm_client.py] -.->|Retry Logic| N
-        S[Exponential Backoff] -.-> R
+        R[llm_client.py] -.-> N[Gemini 2.5 Flash API]
         T[Global Context Block] -.-> M
     end
 ```
@@ -54,10 +56,14 @@ graph TD
 *   **Rule**: If `Chunk A` is contained within `Chunk B`, its prompt is automatically skipped during execution, as the parent's refactoring inherently includes the child.
 
 ### 4. Transition to Gemini 2.5 Flash
-*   **Reasoning**: Upgraded the core engine to `gemini-2.5-flash` to leverage its superior reasoning capabilities and high token limits, allowing for massive "Global Context" prompts without sacrificing performance.
+*   **Reasoning**: Upgraded the core engine to `gemini-2.5-flash` to leverage its superior reasoning capabilities and high token limits.
+
+### 5. Automated Validation Gate (Stage 4)
+*   **Syntax & Linting**: Integrated a multi-tier validation stage that runs after every refactoring to verify syntax correctness, AST integrity, and PEP8 compliance.
+*   **Report Generation**: Produces a `validation_report.txt` and optional JSON report for automated CI/CD integration.
 
 ---
 
 ## 🛑 6. Known Constraints & Future Roadmap
-*   **Top-Level Logic**: Codes residing in the global script scope (no function/class) are currently skipped. **Mitigation**: Future cAST versions will treat the remainder of the file as an "Orphan Chunk."
-*   **Syntax Validation**: Currently relies on the LLM's accuracy. **Future**: Integrate `ruff` or `flake8` as post-processing "Linter Stage."
+*   **Top-Level Logic**: Code residing in the global script scope (no function/class) is currently skipped.
+*   **Semantic Verification**: Future versions will implement logic-consistency checks to ensure the LLM hasn't changed the *observable behavior* of the code.

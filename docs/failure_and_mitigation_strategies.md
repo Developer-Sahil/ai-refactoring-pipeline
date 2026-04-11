@@ -26,36 +26,25 @@ This document analyzes recent failures encountered during the end-to-end refacto
 ## 🛡️ 2. Mitigation Strategies
 
 ### 2.1. Module-Level & "Main" Block Detection
+*   **Status**: 🗓️ Planned / Investigation
 *   **Strategy**: Update `cAST` to detect "Module-Level" code segments as a fallback chunk.
-*   **Implementation**:
-    1.  Identify all code residing in the global scope (outside classes/functions).
-    2.  Explicitly detect `if __name__ == "__main__":` blocks.
-    3.  Generate a "script" or "main" chunk type to ensure these areas are also refactored.
 
 ### 2.2. Robust Nested Filtering (Implemented)
+*   **Status**: ✅ Implemented
 *   **Strategy**: Implement a "Scope-Aware Filter" in the LLM Agent.
-*   **Implementation**:
-    1.  Sort all prompts by line range.
-    2.  Before processing, check for inclusivity: If `Chunk A` is entirely contained within `Chunk B`, skip `Chunk A`'s dedicated prompt.
-    3.  The LLM refactors `Chunk B` (the parent), which inherently includes the refactoring of `Chunk A`.
 
 ### 2.3. Global Architectural Context Injection (Implemented)
+*   **Status**: ✅ Implemented
 *   **Strategy**: Every individual prompt must be "Architecture-Aware."
-*   **Implementation**:
-    1.  Stage 2 (Prompt Builder) now reads the **full source file**.
-    2.  The full file is injected as a "Global Context" block in the prompt instructions.
-    3.  The LLM is instructed to "use the global context to ensure your changes are consistent with the rest of the file."
 
-### 2.4. Senior Architect "Safe" Prompting
-*   **Strategy**: Use high-confidence system prompts to prevent "hallucinations" or unnecessary changes.
-*   **Implementation**:
-    1.  Explicit "Constraints" block (e.g., "Do NOT change observable behavior," "Do NOT rename public APIs").
-    2.  "Senior Software Architect" persona to enforce strict documentation and type-hinting standards.
+### 2.4. Validation Gate (Implemented)
+*   **Status**: ✅ Implemented (Stage 4)
+*   **Strategy**: Automated multi-tier verification (Syntax, AST, Linter) following code reassembly.
 
 ---
 
 ## 📈 3. Continuous Improvement Loop
 
 1.  **Stage 1 Update**: Enhance `cAST` to support "Loose Code" chunks.
-2.  **Stage 4 Verification**: Implement an automated **Syntax Check** (e.g., `python -m compileall`) on the `.refactored.py` file before declaring success.
-3.  **Semantic Diffing**: In future versions, use AST-based diffing to verify that logic hasn't changed despite the refactoring.
+2.  **Semantic Diffing**: In future versions, use AST-based diffing to verify that logic hasn't changed despite the refactoring.
+3.  **Frontend Dashboard**: Visualize pipeline progress and validation reports.
