@@ -18,7 +18,9 @@ coverage.xml
 .pytest_cache/
 *.json
 !few_shot_examples.json
-output/
+**/output/
+**/tmp/
+.agents/
 # Environment variables and secrets
 **/.env
 **/.env.*

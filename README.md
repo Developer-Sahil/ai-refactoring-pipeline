@@ -14,19 +14,24 @@ graph LR
     Stage2 --> Prompts[prompts.json]
     Prompts --> Stage3[Stage 3: LLM Refactoring Agent]
     Stage3 --> Output[Refactored Code]
+    Output --> Stage4[Stage 4: Validator]
+    Stage4 --> Report[Validation Report]
 ```
 
 ---
 
 ## 📁 Project Structure
 
-*   **/input**: Place the source files or "messy" codebases to be refactored here $(e.g., `order_service.py`).
-*   **/pipeline**: Contains the core modules of the refactoring engine:
-    *   **[cAST](file:///c:/dev/SDP/pipeline/cast/)**: AST-based code chunking.
-    *   **[Prompt Builder](file:///c:/dev/SDP/pipeline/prompt_builder/)**: Persona-driven prompt generation.
-    *   **[LLM Agent](file:///c:/dev/SDP/pipeline/llm_agent/)**: Refactoring execution and file reconstruction.
-*   **/output**: (Auto-generated) Stores intermediate JSON outputs (`chunks_output.json`, `prompts.json`) and final refactored files.
-*   **[orchestrate.py](file:///c:/dev/SDP/orchestrate.py)**: The single entry point to run the entire pipeline end-to-end.
+*   **/backend**: All backend code, including the refactoring pipeline.
+    *   **/input**: Place the source files or "messy" codebases to be refactored here.
+    *   **/pipeline**: Core modules (cAST, Prompt Builder, LLM Agent, Validator).
+    *   **/output**: Auto-generated intermediate and final refactored files.
+    *   **orchestrate.py**: Entry point to run the pipeline.
+*   **/frontend**: (Internal) Web-based visualizer and dashboard (Planned).
+*   **/docs**: Comprehensive project documentation and system design.
+*   **docker-compose.ymal**: Deployment configuration.
+*   **README.md**: Project overview and quick start.
+*   **LOG.md**: Project change history.
 
 ---
 
@@ -36,25 +41,23 @@ The easiest way to run the pipeline is using the orchestrator:
 
 ```bash
 # Refactor a file in the input directory
-python orchestrate.py input/order_service.py
+python backend/orchestrate.py backend/input/order_service.py
 ```
 
 ### Advanced Processing Options
 
 ```bash
 # Refactor an entire directory (batch mode)
-python orchestrate.py input/
+python backend/orchestrate.py backend/input/
 
 # Use batching to save API Quota (RPD)
-# Processes 5 chunks in a single LLM request (default: 3)
-python orchestrate.py input/order_service.py --batch-size 5
+python backend/orchestrate.py backend/input/order_service.py --batch-size 5
 
-# Control request throttling (avoid 429 errors)
-# Wait 10 seconds between each LLM call
-python orchestrate.py input/order_service.py --delay 10.0
+# Control request throttling
+python backend/orchestrate.py backend/input/order_service.py --delay 10.0
 
 # Specify an LLM model and refactor in-place
-python orchestrate.py input/order_service.py --model gemini-2.0-flash --in-place
+python backend/orchestrate.py backend/input/order_service.py --model gemini-2.0-flash --in-place
 ```
 
 ---
@@ -70,8 +73,11 @@ To survive strict free-tier limits (e.g., **20 Requests Per Day**), the pipeline
 ## 📜 Project Documentation
 
 *   **General History**: [LOG.md](file:///c:/dev/SDP/LOG.md)
-*   **System Design (HLD/LLD)**: [SYSTEM_DESIGN.md](file:///c:/dev/SDP/SYSTEM_DESIGN.md)
-*   **Stage 1 - cAST**: [pipeline/cast/README.md](file:///c:/dev/SDP/pipeline/cast/README.md)
-*   **Stage 2 - Prompt Builder**: [pipeline/prompt_builder/README.md](file:///c:/dev/SDP/pipeline/prompt_builder/README.md)
-*   **Stage 3 - LLM Agent**: [pipeline/llm_agent/README.md](file:///c:/dev/SDP/pipeline/llm_agent/README.md)
+*   **System Design (HLD/LLD)**: [docs/SYSTEM_DESIGN.md](file:///c:/dev/SDP/docs/SYSTEM_DESIGN.md)
+*   **Project Audit**: [docs/AUDIT.md](file:///c:/dev/SDP/docs/AUDIT.md)
+*   **Failure & Mitigation**: [docs/failure_and_mitigation_strategies.md](file:///c:/dev/SDP/docs/failure_and_mitigation_strategies.md)
+*   **Stage 1 - cAST**: [backend/pipeline/cast/README.md](file:///c:/dev/SDP/backend/pipeline/cast/README.md)
+*   **Stage 2 - Prompt Builder**: [backend/pipeline/prompt_builder/README.md](file:///c:/dev/SDP/backend/pipeline/prompt_builder/README.md)
+*   **Stage 3 - LLM Agent**: [backend/pipeline/llm_agent/README.md](file:///c:/dev/SDP/backend/pipeline/llm_agent/README.md)
+*   **Stage 4 - Validator**: [backend/pipeline/validator/README.md](file:///c:/dev/SDP/backend/pipeline/validator/README.md)
 

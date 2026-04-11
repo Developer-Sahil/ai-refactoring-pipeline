@@ -32,8 +32,8 @@ def main():
     for input_item in args.inputs:
         input_path = Path(input_item).resolve()
         if not input_path.exists():
-            # Try finding it in the input folder if not provided as absolute path
-            input_path = (Path("input") / input_item).resolve()
+            # Try finding it in the backend/input folder relative to this script
+            input_path = (Path(__file__).parent / "input" / input_item).resolve()
             
         if not input_path.exists():
             print(f"Warning: Input {input_item} not found. Skipping.")
@@ -86,6 +86,21 @@ def main():
             la_cmd += " --in-place"
         
         run_command(la_cmd, env=la_env, description=f"Stage 3: LLM Refactoring Agent - {filename}")
+
+        # After Stage 3 completes:
+        result = run_validation(
+            original_file=Path(args.input_file),
+            refactored_file=Path(f"{output_dir}/{filename}.refactored{ext}"),
+            test_dir=Path("tests"),  # if exists
+        )
+
+        if not result.passed:
+            print("❌ Validation failed! Refactored code not suitable for release.")
+            print(result.report)
+            sys.exit(1)
+
+        print("✅ All validation checks passed. Code ready for delivery.")
+        shutil.copy(refactored_file, final_output_dir)
 
     print(f"Pipeline execution finished successfully for {total} file(s)!")
 
