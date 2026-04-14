@@ -27,7 +27,7 @@ graph LR
     *   **/pipeline**: Core modules (cAST, Prompt Builder, LLM Agent, Validator).
     *   **/output**: Auto-generated intermediate and final refactored files.
     *   **orchestrate.py**: Entry point to run the pipeline.
-*   **/frontend**: (Internal) Web-based visualizer and dashboard (Planned).
+*   **/frontend**: React + Vite SaaS UI Dashboard utilizing a Light Mode Neumorphism design system.
 *   **/docs**: Comprehensive project documentation and system design.
 *   **docker-compose.ymal**: Deployment configuration.
 *   **README.md**: Project overview and quick start.
@@ -39,9 +39,19 @@ graph LR
 
 The easiest way to run the pipeline is using the orchestrator:
 
+### Python Backend
+
 ```bash
 # Refactor a file in the input directory
 python backend/orchestrate.py backend/input/order_service.py
+```
+
+### React Frontend Dashboard
+
+```bash
+cd frontend
+npm install
+npm run dev
 ```
 
 ### Advanced Processing Options

@@ -1,0 +1,109 @@
+:root {
+  /* Neumorphic Light Mode Palette */
+  --bg-color: #e0e5ec;
+  --text-color: #4a5568;
+  --text-color-muted: #718096;
+  --accent-color: #4299e1; /* A gentle blue for active states/buttons */
+  
+  /* Shadows */
+  --shadow-light: #ffffff;
+  --shadow-dark: #a3b1c6;
+  
+  /* Drop Shadows (Raised elements) */
+  --neumorphic-raised: 9px 9px 16px var(--shadow-dark), -9px -9px 16px var(--shadow-light);
+  --neumorphic-raised-hover: 4px 4px 8px var(--shadow-dark), -4px -4px 8px var(--shadow-light);
+  
+  /* Inner Shadows (Inset elements like inputs, wells) */
+  --neumorphic-inset: inset 6px 6px 10px 0 var(--shadow-dark), inset -6px -6px 10px 0 var(--shadow-light);
+  --neumorphic-inset-deep: inset 10px 10px 20px 0 var(--shadow-dark), inset -10px -10px 20px 0 var(--shadow-light);
+
+  font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  margin: 0;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+h1, h2, h3, h4 {
+  font-weight: 600;
+  color: #2d3748;
+}
+
+/* Base utility classes for Neumorphism */
+.neu-raised {
+  background: var(--bg-color);
+  box-shadow: var(--neumorphic-raised);
+  border-radius: 12px;
+  transition: all 0.2s ease-in-out;
+}
+
+.neu-inset {
+  background: var(--bg-color);
+  box-shadow: var(--neumorphic-inset);
+  border-radius: 12px;
+}
+
+.neu-button {
+  background: var(--bg-color);
+  color: var(--accent-color);
+  font-weight: 600;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 50px;
+  box-shadow: var(--neumorphic-raised);
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  outline: none;
+}
+
+.neu-button:hover {
+  box-shadow: var(--neumorphic-raised-hover);
+}
+
+.neu-button:active {
+  box-shadow: var(--neumorphic-inset);
+}
+
+.neu-button.primary {
+  color: white;
+  background: var(--accent-color);
+  /* Adjusting shadows slightly for the blue background */
+  box-shadow: 6px 6px 12px #a3b1c6, -6px -6px 12px #ffffff; 
+}
+.neu-button.primary:active {
+  box-shadow: inset 4px 4px 8px rgba(0,0,0,0.2), inset -4px -4px 8px rgba(255,255,255,0.2);
+}
+
+.neu-input {
+  background: var(--bg-color);
+  border: none;
+  padding: 12px 16px;
+  border-radius: 8px;
+  box-shadow: var(--neumorphic-inset);
+  color: var(--text-color);
+  outline: none;
+  font-family: inherit;
+  width: 100%;
+}
+
+.neu-input:focus {
+  box-shadow: var(--neumorphic-inset-deep);
+}

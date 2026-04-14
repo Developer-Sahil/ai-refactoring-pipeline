@@ -1,0 +1,268 @@
+/* Empty or component specific css */
+.app-container {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  min-height: 100vh;
+  padding: 24px;
+  gap: 32px;
+}
+
+@media (max-width: 768px) {
+  .app-container {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sidebar {
+  padding: 32px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.logo {
+  font-size: 1.25rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-color);
+}
+
+.logo-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-color);
+  font-size: 1.5rem;
+}
+
+.nav-links {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.nav-item {
+  padding: 12px 16px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 500;
+  color: var(--text-color-muted);
+  transition: all 0.2s ease-in-out;
+}
+
+.nav-item.active {
+  color: var(--accent-color);
+}
+
+.main-content {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.user-profile {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 350px;
+  gap: 32px;
+  align-items: start;
+}
+
+@media (max-width: 1024px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.upload-card {
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.drop-zone {
+  min-height: 250px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 16px;
+  padding: 32px;
+  border-radius: 16px;
+  color: var(--text-color-muted);
+  cursor: pointer;
+}
+
+.drop-icon {
+  font-size: 3rem;
+  color: var(--text-color-muted);
+  opacity: 0.5;
+}
+
+.config-card {
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.config-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.config-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.config-label {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+/* Custom Neumorphic Toggle */
+.toggle-switch {
+  position: relative;
+  width: 50px;
+  height: 28px;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.toggle-switch .knob {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--bg-color);
+  box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+  transition: transform 0.3s;
+}
+
+.toggle-switch.active .knob {
+  transform: translateX(22px);
+  background: var(--accent-color);
+  box-shadow: inset 2px 2px 4px rgba(255,255,255,0.4), 2px 2px 5px rgba(0,0,0,0.2);
+}
+
+.toggle-switch.active {
+  box-shadow: var(--neumorphic-inset-deep);
+}
+
+/* Range Slider override idea (using standard input type=range for simplicity + styling) */
+input[type=range] {
+  -webkit-appearance: none;
+  width: 100%;
+  background: transparent;
+}
+
+input[type=range]:focus {
+  outline: none;
+}
+
+input[type=range]::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 12px;
+  cursor: pointer;
+  border-radius: 6px;
+  box-shadow: var(--neumorphic-inset);
+}
+
+input[type=range]::-webkit-slider-thumb {
+  box-shadow: var(--neumorphic-raised);
+  height: 24px;
+  width: 24px;
+  border-radius: 50%;
+  background: var(--bg-color);
+  cursor: pointer;
+  -webkit-appearance: none;
+  margin-top: -6px;
+}
+
+.action-area {
+  margin-top: 16px;
+}
+
+.run-btn {
+  width: 100%;
+  padding: 16px;
+  font-size: 1.1rem;
+}
+
+/* Pipeline Tracker */
+.pipeline-card {
+  padding: 32px;
+  margin-top: 32px;
+}
+
+.steps {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 24px;
+  position: relative;
+}
+
+.steps::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--bg-color);
+  box-shadow: var(--neumorphic-inset);
+  transform: translateY(-50%);
+  z-index: 1;
+  border-radius: 2px;
+}
+
+.step {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text-color-muted);
+}
+
+.step.active {
+  color: var(--accent-color);
+  box-shadow: var(--neumorphic-inset);
+}
+.step.completed {
+  color: white;
+  background: var(--accent-color);
+  box-shadow: var(--neumorphic-raised);
+}

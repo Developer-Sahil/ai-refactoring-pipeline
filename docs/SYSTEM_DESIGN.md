@@ -64,6 +64,24 @@ graph TD
 
 ---
 
-## 🛑 6. Known Constraints & Future Roadmap
+## 💻 6. Frontend Presentation Layer (SaaS Dashboard)
+
+### 1. Technology Stack
+*   **Framework**: React (Bootstrapped via Vite with `--template react`).
+*   **Styling**: Pure CSS (`index.css` and `App.css`) mapping explicitly to dynamic UI components.
+
+### 2. Design System
+*   **Paradigm**: **Light Mode Neumorphism / Skeuomorphism**.
+*   **Physics**: Components leverage soft, deeply layered drop shadows (`--neumorphic-raised`) and inset inner shadows (`--neumorphic-inset`) spanning across a light monochromatic base (`#e0e5ec`). This conveys physicality, tactile touchpoints, and intuitive interaction zones entirely via CSS variables.
+
+### 3. Core Interface Components
+*   **Upload Context Zone**: A depressed tray that accepts file dragging, allowing intuitive staging of the "messy" source files.
+*   **Settings Dial/Console**: Raised hardware-like toggle-switches, dial sliders, and configuration selectors directly mapping to the Backend Pipeline’s CLI arguments (`batch-size`, `delay`, `model`, `in-place`).
+*   **Execution Controller**: A tactile Primary "Run Pipeline" hardware button which dynamically transitions via an embedded pipeline tracking sequence (Stage 1➔4) reflecting backend orchestrator tasks.
+*   **Validation Viewer**: Emulated terminal/code well extracting `.refactored.py` output syntax dynamically into view for instant side-by-side human validation.
+
+---
+
+## 🛑 7. Known Constraints & Future Roadmap
 *   **Top-Level Logic**: Code residing in the global script scope (no function/class) is currently skipped.
 *   **Semantic Verification**: Future versions will implement logic-consistency checks to ensure the LLM hasn't changed the *observable behavior* of the code.
