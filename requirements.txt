@@ -1,0 +1,13 @@
+# ── Core pipeline dependencies ─────────────────────────────────────────────
+google-genai>=1.0.0          # Gemini API client (Stage 3: LLM Agent)
+python-dotenv>=1.0.0         # .env file loader for GEMINI_API_KEY
+
+# ── Stage 4: Validator ─────────────────────────────────────────────────────
+flake8>=7.0.0                # PEP8 linting check
+pytest>=8.0.0                # Optional: run existing test suites during validation
+
+# ── Stage 1: cAST (optional enhanced parser) ───────────────────────────────
+# tree-sitter gives more accurate parsing for JS/TS/Java/Go/C/C++.
+# If not installed, the pipeline falls back to the built-in regex parser.
+# Uncomment to install:
+# tree-sitter>=0.25.0
