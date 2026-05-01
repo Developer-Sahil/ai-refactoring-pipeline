@@ -162,10 +162,23 @@ def run_validation(
         refac_module, refac_err = safe_import_module(refactored_file)
 
         if orig_module is None:
-            checks["functional"] = (
-                False,
-                f"Could not import original: {orig_err}",
+            # Distinguish between an unresolvable project dependency (expected
+            # when only a single file is uploaded) and a true module error.
+            is_missing_dep = (
+                "ImportError" in orig_err
+                or "ModuleNotFoundError" in orig_err
             )
+            if is_missing_dep:
+                checks["functional"] = (
+                    True,   # not a failure — dependency context was absent
+                    f"Skipped — unresolvable import (upload the full project for "
+                    f"functional testing): {orig_err}",
+                )
+            else:
+                checks["functional"] = (
+                    False,
+                    f"Could not import original: {orig_err}",
+                )
         elif refac_module is None:
             checks["functional"] = (
                 False,

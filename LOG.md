@@ -58,3 +58,61 @@
 - Integrated a result diff viewer.
 
 - Updated README.md, AUDIT.md, and SYSTEM_DESIGN.md to reflect the completion of the Frontend SaaS UI phase.
+
+## 2026-05-01
+- **Repository Synchronization**: Pulled latest updates from GitHub.
+- **Project Name Correction**: Standardized the project as **AI Refactoring Pipeline** (removed "WashLogs" references).
+- **Documentation Overhaul**: 
+    - Renamed `SYSTEM_DESIGN.md` to `ARCHITECTURE.md` and updated `README.md` links.
+    - Created a complete documentation suite: `PRD.md`, `DEPLOYMENT.md`, `API.md`, `CONTRIBUTING.md`, `TESTING.md`, `SECURITY.md`.
+    - Integrated Stage 4 Functional Validation (Behavior Capture, Property Testing, Replay) into `ARCHITECTURE.md`.
+- **Infrastructure**: Added root-level `requirements.txt`.
+
+## 2026-05-01 (End-to-End Integration)
+- **API Implementation**: Created `backend/main.py` using FastAPI to expose the refactoring orchestrator as a REST API.
+- **Frontend Connectivity**: Updated `frontend/src/App.jsx` to perform real-time file uploads and display live refactoring results.
+- **Dependency Update**: Added `fastapi`, `uvicorn`, and `python-multipart` to `requirements.txt`.
+- **Server Deployment**: Successfully initialized and verified both the FastAPI backend (Port 8000) and Vite frontend (Port 5173).
+
+## 2026-05-01 (REST API Middleware)
+- **API Versioning**: Restructured backend to use `/api/v1/` prefix on all pipeline routes.
+- **Async Job Queue**: Implemented `ThreadPoolExecutor`-based async job processing with a full in-memory `JobStore` — prevents API timeouts on large files.
+- **New Endpoints**: `POST /api/v1/refactor`, `GET /api/v1/status/{id}`, `GET /api/v1/results/{id}`, `GET /api/v1/jobs`.
+- **WebSocket**: Added `/api/v1/ws/{job_id}` endpoint for real-time stage-update streaming.
+- **Frontend Overhaul**: Replaced dummy pipeline animation with XHR upload progress, WebSocket subscriptions, polling fallback, and a split/unified code diff viewer.
+- **UI Additions**: Job history panel, validation check breakdown, connection status indicator, pipeline log collapsibles.
+- **Documentation**: Updated `docs/API.md` with the complete v1 API specification.
+
+## 2026-05-01 (Bugfix)
+- **Root Cause**: `UnicodeEncodeError: 'charmap' codec can't encode character` in `orchestrate.py:372`.
+  - Windows console encoding `cp1252` cannot represent the Unicode box-drawing character `━` used in the summary table.
+- **Fix 1 — `backend/orchestrate.py`**: Added `io.TextIOWrapper` reconfiguration at startup to force UTF-8 on `sys.stdout` / `sys.stderr` when the process encoding is not already UTF-8.
+- **Fix 2 — `backend/main.py`**: Pass `PYTHONUTF8=1` in the subprocess environment so all child processes (cAST, Prompt Builder, LLM Agent, Validator) also inherit UTF-8 encoding.
+
+## 2026-05-01 (Validator Error Analysis)
+- **File tested**: `agent.py` (Meeting Scheduling Agent with Gemini tool-calling).
+- **Linting (`warning`)**: Refactored code has E302/E303 blank-line violations and one E501 line-too-long. These are LLM output quality issues — the LLM added excessive blank lines between methods and produced one line > 120 chars.
+- **Functional (`failed`)**: `ImportError: No module named 'core'`. `agent.py` imports `from core import User, MeetingRequest, ...`. The `core` module is a sibling in the original project but was not uploaded. The functional validator correctly tries to dynamically import the original file to capture behavior — it cannot proceed without `core` being resolvable.
+- **Root Cause**: Functional validation requires all transitive dependencies of the uploaded file to be importable. Files with project-local imports (like `core`) will always fail this check unless the full project context is uploaded.
+- **Status**: Expected / by-design failure for isolated file uploads. No validator bug.
+
+## 2026-05-01 (Feature: Folder Uploads, --no-functional flag, Auto-skip ImportError)
+- **Folder/ZIP Upload**: Backend `main.py` now accepts `List[UploadFile]` and handles three upload modes — multiple `.py` files, browser folder picker (`webkitdirectory`), and `.zip` archives (extracted server-side). Each job gets an isolated `uploads/{job_id}/` directory.
+- **`--no-functional` flag**: Added to `orchestrate.py` argparse and threaded through both first-pass and retry `_stage_4` calls. Backend API exposes it as `no_functional: bool` form field. Frontend config panel has a "Skip Functional Tests" toggle.
+- **Auto-skip ImportError**: `run_validation.py` now detects when functional validation fails due to `ImportError`/`ModuleNotFoundError` (missing project dependency) and returns `(True, "Skipped — unresolvable import …")` instead of `(False, …)` — treating it as a warning rather than a failure.
+- **UI Additions**: Upload mode switcher (📄 File / 📁 Folder / 🗜 ZIP), multi-file result tabs with pass/fail dots, no-functional toggle in config panel.
+- **Firebase Auth**: Replaced all Supabase Auth references in `docs/DEPLOYMENT.md`, `docs/SECURITY.md`, `docs/API.md` with Firebase Authentication (Google Identity Platform).
+
+## 2026-05-01 (Docs: Failure & Mitigation Strategies)
+- Rewrote `docs/failure_and_mitigation_strategies.md` in tabular format.
+- Added 3 new failure categories: Unicode Encode Error (1.4), Functional ImportError (1.5), LLM Linting Violations (1.6), API Timeout (1.7).
+- Added Section 3: Upload & Multi-File Failures (path traversal, empty upload, single-file context gap).
+- Added Section 4: Prioritized Continuous Improvement Roadmap table.
+
+## 2026-05-01 (Bugfix: UnicodeDecodeError on subprocess stdout pipe)
+- **Root Cause**: `subprocess.run(..., text=True)` in `backend/main.py` decoded the child process stdout using the parent's default encoding (`cp1252` on Windows). Refactored code containing Unicode characters (box-drawing, em-dashes in section comments) caused `UnicodeDecodeError: 'charmap' codec can't decode byte 0x81`.
+- **Fix**: Added `encoding="utf-8"` and `errors="replace"` to `subprocess.run()` so stdout/stderr are always decoded as UTF-8.
+
+## 2026-05-01 (Bugfix: Async functions not awaited in functional validator)
+- **Root Cause**: `execute_with_timeout()` in `test_executor.py` called functions synchronously. `async def` functions (e.g., `create_calendar_event`, `find_event`, `delete_event`) returned unawaited coroutine objects instead of results. The determinism check then compared two different coroutine objects at different memory addresses — always failing.
+- **Fix**: Added `inspect.iscoroutinefunction()` detection in `_call()`. Async functions are now executed with `asyncio.run()` inside the executor thread (safe because ThreadPoolExecutor threads have no running event loop).

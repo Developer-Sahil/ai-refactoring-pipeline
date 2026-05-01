@@ -11,3 +11,8 @@ pytest>=8.0.0                # Optional: run existing test suites during validat
 # If not installed, the pipeline falls back to the built-in regex parser.
 # Uncomment to install:
 # tree-sitter>=0.25.0
+
+# ── API & Server ──────────────────────────────────────────────────────────
+fastapi>=0.100.0
+uvicorn>=0.22.0
+python-multipart>=0.0.6

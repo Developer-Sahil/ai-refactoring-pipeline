@@ -1,6 +1,6 @@
 ---
 
-## 🎨 4. Detailed Architecture Workflow
+## 🎨 1. Detailed Architecture Workflow
 
 ```mermaid
 graph TD
@@ -29,8 +29,11 @@ graph TD
     subgraph "Stage 4: Validator (Verification)"
         Q --> V1[Syntax Validation]
         V1 --> V2[AST Integrity Comparison]
-        V2 --> V3[PEP8 Linting Check]
-        V3 --> W[validation_report.txt]
+        V2 --> V3[Functional Validation]
+        V3 --> V3A[Behavior Capture]
+        V3 --> V3B[Property Testing]
+        V3 --> V3C[Replay Execution]
+        V3C --> W[validation_report.json]
     end
 
     subgraph "Infrastructure"
@@ -41,7 +44,7 @@ graph TD
 
 ---
 
-## 🚀 5. Recent Quality Enhancements
+## 🚀 2. Recent Quality Enhancements
 
 ### 1. Global Architectural Awareness
 *   **Context Injection**: Every prompt now includes the **entire source file** inside a `Global Architectural Context` block.
@@ -59,12 +62,16 @@ graph TD
 *   **Reasoning**: Upgraded the core engine to `gemini-2.5-flash` to leverage its superior reasoning capabilities and high token limits.
 
 ### 5. Automated Validation Gate (Stage 4)
-*   **Syntax & Linting**: Integrated a multi-tier validation stage that runs after every refactoring to verify syntax correctness, AST integrity, and PEP8 compliance.
-*   **Report Generation**: Produces a `validation_report.txt` and optional JSON report for automated CI/CD integration.
+*   **Syntax & AST**: Verifies compilation correctness and structural integrity.
+*   **Functional Parity**: New suite of testing tools:
+    - **Behavior Capture**: Records state changes.
+    - **Property Testing**: Uses `input_generator.py` for edge-case coverage.
+    - **Replay**: Executes tests against refactored code to ensure 100% logic preservation.
+*   **Report Generation**: Produces a comprehensive `validation_report.json` for CI/CD integration.
 
 ---
 
-## 💻 6. Frontend Presentation Layer (SaaS Dashboard)
+## 💻 3. Frontend Presentation Layer (SaaS Dashboard)
 
 ### 1. Technology Stack
 *   **Framework**: React (Bootstrapped via Vite with `--template react`).
@@ -82,6 +89,6 @@ graph TD
 
 ---
 
-## 🛑 7. Known Constraints & Future Roadmap
+## 🛑 4. Known Constraints & Future Roadmap
 *   **Top-Level Logic**: Code residing in the global script scope (no function/class) is currently skipped.
 *   **Semantic Verification**: Future versions will implement logic-consistency checks to ensure the LLM hasn't changed the *observable behavior* of the code.

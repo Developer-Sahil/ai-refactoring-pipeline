@@ -47,6 +47,13 @@ def execute_with_timeout(
     but it will not hold up the validation pipeline.
     """
     def _call() -> Any:
+        import asyncio
+        import inspect
+        if inspect.iscoroutinefunction(func):
+            # Run the coroutine in a fresh event loop inside this thread.
+            # ThreadPoolExecutor threads have no running event loop, so
+            # asyncio.run() is always safe here.
+            return asyncio.run(func(*args, **kwargs))
         return func(*args, **kwargs)
 
     executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
@@ -56,7 +63,7 @@ def execute_with_timeout(
         executor.shutdown(wait=False)
         return True, result, None
     except concurrent.futures.TimeoutError:
-        executor.shutdown(wait=False)   # do NOT block waiting for the thread
+        executor.shutdown(wait=False)
         return False, None, f"TimeoutError: call exceeded {timeout:.1f}s"
     except Exception as exc:  # noqa: BLE001
         executor.shutdown(wait=False)

@@ -25,6 +25,7 @@ Behaviour (v2)
 """
 from __future__ import annotations
 
+import io
 import json
 import os
 import subprocess
@@ -33,6 +34,13 @@ import argparse
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
+
+# ── Force UTF-8 output on Windows (avoids cp1252 UnicodeEncodeError with
+#    box-drawing / emoji characters in the summary table) ──────────────────────
+if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+if sys.stderr.encoding and sys.stderr.encoding.lower() != "utf-8":
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -282,6 +290,7 @@ def _stage_4(
     pipeline_dir:  Path,
     stem:          str,
     tag:           str = "",
+    no_functional: bool = False,
 ) -> dict:
     """Run Validator. Returns outcome dict."""
     fn  = input_path.name
@@ -291,10 +300,11 @@ def _stage_4(
     r_json = output_dir / f"{stem}_validation_report.json"
     script = pipeline_dir / "validator" / "run_validation.py"
 
+    no_func_flag = "--no-functional" if no_functional else ""
     rc = _run(
         f'python "{script}" file '
         f'--original "{input_path}" --refactored "{refactored}" '
-        f'--report "{r_txt}" --json-report "{r_json}"',
+        f'--report "{r_txt}" --json-report "{r_json}" {no_func_flag}'.strip(),
         description=f"Stage 4: Validator{sfx} - {fn}",
     )
 
@@ -330,12 +340,14 @@ def _stage_4(
 def main() -> None:
     parser = argparse.ArgumentParser(description="AI Code Refactoring Pipeline")
     parser.add_argument("inputs", nargs="+")
-    parser.add_argument("--model",      default="gemini-2.5-flash")
-    parser.add_argument("--in-place",   action="store_true")
-    parser.add_argument("--delay",      type=float, default=2.0)
-    parser.add_argument("--batch-size", type=int,   default=3)
-    parser.add_argument("--no-retry",   action="store_true",
+    parser.add_argument("--model",          default="gemini-2.5-flash")
+    parser.add_argument("--in-place",       action="store_true")
+    parser.add_argument("--delay",          type=float, default=2.0)
+    parser.add_argument("--batch-size",     type=int,   default=3)
+    parser.add_argument("--no-retry",       action="store_true",
                         help="Skip the automatic retry pass for failed files")
+    parser.add_argument("--no-functional",  action="store_true",
+                        help="Skip functional/behavioral validation in Stage 4")
     args = parser.parse_args()
 
     # Collect source files
@@ -388,7 +400,8 @@ def main() -> None:
         r.stage1_ok, r.stage2_ok, r.stage3_ok = s1, s2, s3
 
         if s3 and refactored.exists():
-            v = _stage_4(input_path, refactored, output_dir, pipeline_dir, stem)
+            v = _stage_4(input_path, refactored, output_dir, pipeline_dir, stem,
+                         no_functional=args.no_functional)
             r.val_passed   = v["passed"]
             r.val_severity = v["severity"]
             r.val_pass_rate = v["pass_rate"]
@@ -479,7 +492,7 @@ def main() -> None:
             # Stage 4: re-validate
             v = _stage_4(
                 input_path, refactored, output_dir, pipeline_dir, stem,
-                tag="RETRY",
+                tag="RETRY", no_functional=args.no_functional,
             )
             r.retry_val_passed = v["passed"]
             r.retry_severity   = v["severity"]

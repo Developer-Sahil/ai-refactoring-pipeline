@@ -83,7 +83,7 @@ To survive strict free-tier limits (e.g., **20 Requests Per Day**), the pipeline
 ## 📜 Project Documentation
 
 *   **General History**: [LOG.md](file:///c:/dev/SDP/LOG.md)
-*   **System Design (HLD/LLD)**: [docs/SYSTEM_DESIGN.md](file:///c:/dev/SDP/docs/SYSTEM_DESIGN.md)
+*   **System Design (HLD/LLD)**: [docs/ARCHITECTURE.md](file:///c:/dev/SDP/docs/ARCHITECTURE.md)
 *   **Project Audit**: [docs/AUDIT.md](file:///c:/dev/SDP/docs/AUDIT.md)
 *   **Failure & Mitigation**: [docs/failure_and_mitigation_strategies.md](file:///c:/dev/SDP/docs/failure_and_mitigation_strategies.md)
 *   **Stage 1 - cAST**: [backend/pipeline/cast/README.md](file:///c:/dev/SDP/backend/pipeline/cast/README.md)
