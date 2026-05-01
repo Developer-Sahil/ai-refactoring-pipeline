@@ -29,3 +29,10 @@ coverage.xml
 .vscode/
 .idea/
 .DS_Store
+# User-uploaded files (never commit these)
+backend/input/uploads/
+# SQLite database
+*.db
+# Frontend dependencies
+node_modules/
+frontend/dist/
