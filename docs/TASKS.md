@@ -6,8 +6,8 @@ This document tracks identified issues, planned features, and technical debt for
 
 - [x] **Functional Validator Dependency Resolution**: Stage 4 often fails because it cannot resolve local/project-level imports in the `backend/input/uploads` directory.
     - *Fix*: `_save_uploads` now preserves full directory trees for both `.py` and `.zip` uploads.
-- [ ] **Object Identity in Validator**: The functional validator can be non-deterministic when comparing coroutines or generators.
-    - *Proposed Fix*: Normalize `repr` comparison logic or use state-snapshotting.
+- [x] **Object Identity in Validator**: The functional validator can be non-deterministic when comparing coroutines or generators.
+    - *Fix*: Normalized `repr` comparison logic in `outputs_match` to strip memory addresses.
 - [x] **Process Leakage**: Ensure that every subprocess started by `orchestrate.py` is correctly reaped, especially after a "Kill" signal.
     - *Fix*: Added `_kill_process_tree()` using `taskkill /T` on Windows, and SIGTERM signal handlers in `orchestrate.py`.
 - [x] **WebSocket Reconnection**: Implement exponential backoff for the frontend WebSocket client to handle server restarts gracefully.

@@ -11,7 +11,9 @@ Output comparison and result aggregation utilities.
 """
 from __future__ import annotations
 
+import inspect
 import math
+import re
 from typing import Any
 
 
@@ -43,6 +45,17 @@ def outputs_match(
     # Type mismatch — not equal
     if type(expected) is not type(actual):
         return False
+
+    # Coroutines and Generators
+    if inspect.iscoroutine(expected) and inspect.iscoroutine(actual):
+        rep_e = re.sub(r" at 0x[0-9a-fA-F]+", "", repr(expected))
+        rep_a = re.sub(r" at 0x[0-9a-fA-F]+", "", repr(actual))
+        return rep_e == rep_a
+
+    if inspect.isgenerator(expected) and inspect.isgenerator(actual):
+        rep_e = re.sub(r" at 0x[0-9a-fA-F]+", "", repr(expected))
+        rep_a = re.sub(r" at 0x[0-9a-fA-F]+", "", repr(actual))
+        return rep_e == rep_a
 
     # Float
     if isinstance(expected, float):
