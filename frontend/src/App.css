@@ -316,6 +316,7 @@
 .status-running   { background: #fef3c7; color: #d69e2e; }
 .status-completed { background: #c6f6d5; color: #2f855a; }
 .status-failed    { background: #fed7d7; color: #c53030; }
+.status-cancelled { background: #e2e8f0; color: #718096; }
 
 .kill-btn {
   padding: 4px 10px;

@@ -77,14 +77,41 @@ class FileResult:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Shell helper — never calls sys.exit
+# Shell helper — never calls sys.exit, propagates termination
 # ─────────────────────────────────────────────────────────────────────────────
+
+import signal as _signal
+
+_active_child: subprocess.Popen | None = None
+
+
+def _sigterm_handler(signum, frame):
+    """When orchestrate.py is killed, also kill the active child process."""
+    if _active_child and _active_child.poll() is None:
+        if sys.platform == "win32":
+            subprocess.run(
+                ["taskkill", "/F", "/T", "/PID", str(_active_child.pid)],
+                capture_output=True,
+            )
+        else:
+            _active_child.terminate()
+    sys.exit(128 + signum)
+
+
+# Register signal handlers for graceful teardown
+_signal.signal(_signal.SIGINT, _sigterm_handler)
+if sys.platform != "win32":
+    _signal.signal(_signal.SIGTERM, _sigterm_handler)
+
 
 def _run(command: str, env: dict | None = None, description: str = "") -> int:
     """Run *command* and return its exit code. Does NOT abort on failure."""
+    global _active_child
     print(f"\n--- Running: {description} ---")
     print(f"Command: {command}")
-    rc = subprocess.run(command, env=env, shell=True).returncode
+    _active_child = subprocess.Popen(command, env=env, shell=True)
+    rc = _active_child.wait()
+    _active_child = None
     if rc == 0:
         print(f"--- {description} completed successfully ---\n")
     else:
@@ -340,7 +367,7 @@ def _stage_4(
 def main() -> None:
     parser = argparse.ArgumentParser(description="AI Code Refactoring Pipeline")
     parser.add_argument("inputs", nargs="+")
-    parser.add_argument("--model",          default="gemini-2.5-flash")
+    parser.add_argument("--model",          default="gemma-3-1b")
     parser.add_argument("--in-place",       action="store_true")
     parser.add_argument("--delay",          type=float, default=2.0)
     parser.add_argument("--batch-size",     type=int,   default=3)

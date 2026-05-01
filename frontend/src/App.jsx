@@ -162,6 +162,7 @@ function JobHistoryItem({ job, onSelect, isActive }) {
   const statusColor = {
     completed: 'var(--accent-color)',
     failed: '#e53e3e',
+    cancelled: '#a0aec0',
     running: '#ed8936',
     queued: 'var(--text-color-muted)',
   }[job.status] ?? 'var(--text-color-muted)';
@@ -260,26 +261,55 @@ function App() {
 
   useEffect(() => { refreshHistory(); }, [refreshHistory]);
 
-  // ── WebSocket subscription ─────────────────────────────────────────────────
+  // ── WebSocket subscription with exponential backoff ─────────────────────────
+  const wsRetriesRef = useRef(0);
+  const wsTimerRef   = useRef(null);
+  const MAX_WS_RETRIES = 5;
+
   const connectWS = useCallback((jid) => {
+    // Clear any pending reconnection timer
+    if (wsTimerRef.current) {
+      clearTimeout(wsTimerRef.current);
+      wsTimerRef.current = null;
+    }
     if (wsRef.current) {
       wsRef.current.close();
     }
+
     const ws = new WebSocket(`${WS_BASE}/${jid}`);
     wsRef.current = ws;
+
+    ws.onopen = () => {
+      wsRetriesRef.current = 0;     // Reset backoff on successful connect
+    };
 
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data);
       if (data.error) return;
       setJobStatus(data);
 
-      // When job finishes, fetch full results
-      if (data.status === 'completed' || data.status === 'failed') {
-        fetchResults(jid);
+      // When job finishes (including cancellation), fetch full results
+      if (['completed', 'failed', 'cancelled'].includes(data.status)) {
+        if (data.status !== 'cancelled') fetchResults(jid);
         refreshHistory();
       }
     };
-    ws.onerror = () => setError('WebSocket connection lost. Falling back to polling.');
+
+    ws.onclose = (event) => {
+      // Don't reconnect if we closed intentionally or job is done
+      const currentStatus = _jobs?.status;
+      if (event.code === 1000 || wsRetriesRef.current >= MAX_WS_RETRIES) return;
+
+      // Exponential backoff: 1s, 2s, 4s, 8s, 16s
+      const delay = Math.min(1000 * Math.pow(2, wsRetriesRef.current), 16000);
+      wsRetriesRef.current += 1;
+      console.log(`WebSocket reconnecting in ${delay}ms (attempt ${wsRetriesRef.current}/${MAX_WS_RETRIES})`);
+      wsTimerRef.current = setTimeout(() => connectWS(jid), delay);
+    };
+
+    ws.onerror = () => {
+      // onclose will fire after this and handle reconnection
+    };
   }, [refreshHistory]);
 
   // ── Polling fallback ───────────────────────────────────────────────────────
@@ -291,9 +321,9 @@ function App() {
         if (res.ok) {
           const data = await res.json();
           setJobStatus(prev => ({ ...prev, ...data }));
-          if (data.status === 'completed' || data.status === 'failed') {
+          if (['completed', 'failed', 'cancelled'].includes(data.status)) {
             clearInterval(interval);
-            fetchResults(jobId);
+            if (data.status !== 'cancelled') fetchResults(jobId);
             refreshHistory();
           }
         }

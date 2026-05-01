@@ -127,6 +127,14 @@
     3. Updated `MultiFileTabs` to use `cur.original_code` for diffing.
     4. Cleaned up the results display logic to correctly branch between single-file and multi-file views.
 
+## 2026-05-01 (Infrastructure Hardening)
+- **Recursive Upload Preservation**: Rewrote `_save_uploads()` to preserve the full directory tree for both `.py` (via `webkitdirectory`) and `.zip` uploads. ZIP extraction now maintains internal folder layout with path-traversal protection.
+- **Process Tree Kill**: Replaced `process.kill()` with `_kill_process_tree()` which uses `taskkill /F /T` on Windows and `psutil` on Unix to recursively terminate all child processes.
+- **SIGTERM Propagation**: `orchestrate.py` now tracks its active child subprocess and registers a `SIGINT`/`SIGTERM` handler that terminates it on shutdown.
+- **WebSocket Reconnection**: Frontend `connectWS` now implements exponential backoff (1s→2s→4s→8s→16s, max 5 retries) with automatic reconnection after drops.
+- **Cancelled Status**: Added `cancelled` as a first-class job status across backend (WebSocket loop, job store), frontend (polling, history items, status chips, CSS).
+- **Cancel + Cleanup Endpoints**: Added `POST /api/v1/jobs/{job_id}/cancel` and `DELETE /api/v1/jobs/cleanup` with full process-tree teardown.
+
 ## 2026-05-01 (Job Control & Maintenance)
 - **Manual Cancellation**: Implemented a "Kill Job" feature with backend subprocess termination support.
 - **Cleanup API**: Added a global cleanup endpoint to terminate all running jobs and wipe history.

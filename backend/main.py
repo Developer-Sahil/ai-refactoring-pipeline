@@ -25,6 +25,7 @@ import asyncio
 import io
 import json
 import os
+import signal
 import subprocess
 import sys
 import threading
@@ -135,6 +136,21 @@ def _broadcast(job_id: str, payload: dict) -> None:
             pass
 
 
+def _kill_process_tree(proc: subprocess.Popen) -> None:
+    """Kill a process and its children."""
+    if sys.platform == "win32":
+        subprocess.run(["taskkill", "/F", "/T", "/PID", str(proc.pid)], capture_output=True)
+    else:
+        try:
+            import psutil
+            parent = psutil.Process(proc.pid)
+            for child in parent.children(recursive=True):
+                child.terminate()
+            parent.terminate()
+        except ImportError:
+            proc.kill()
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # File helpers
 # ─────────────────────────────────────────────────────────────────────────────
@@ -145,14 +161,15 @@ def _collect_py_files(job_dir: Path) -> list[Path]:
 
 
 async def _save_uploads(
-    files: List[UploadFile],
-    job_dir: Path,
+    files: list[UploadFile], job_dir: Path,
 ) -> list[Path]:
     """
-    Save every uploaded file into *job_dir*.
+    Save every uploaded file into *job_dir*, preserving directory structure.
+
     Handles three cases:
-    - .zip   → extract all .py files
-    - .py    → save directly
+    - .zip   → extract all .py files, preserving internal directory layout
+    - .py    → save directly, preserving the relative path sent by the browser
+              (folder uploads via webkitdirectory send "dir/sub/file.py")
     - other  → ignored with a warning
     Returns the list of saved .py paths.
     """
@@ -164,21 +181,31 @@ async def _save_uploads(
         name = uf.filename or "upload"
 
         if name.endswith(".zip"):
-            # Extract zip and collect .py files
             try:
                 with zipfile.ZipFile(io.BytesIO(contents)) as zf:
                     for member in zf.namelist():
-                        if member.endswith(".py") and not member.startswith("__"):
-                            dest = job_dir / Path(member).name
-                            dest.write_bytes(zf.read(member))
-                            saved.append(dest)
+                        # Skip directories, __pycache__, hidden files
+                        if (member.endswith("/")
+                            or "__pycache__" in member
+                            or member.startswith("__")
+                            or not member.endswith(".py")):
+                            continue
+                        # Security: reject path-traversal attempts
+                        resolved = (job_dir / member).resolve()
+                        if not str(resolved).startswith(str(job_dir.resolve())):
+                            continue
+                        # Preserve the full internal directory tree
+                        dest = job_dir / member
+                        dest.parent.mkdir(parents=True, exist_ok=True)
+                        dest.write_bytes(zf.read(member))
+                        saved.append(dest)
             except zipfile.BadZipFile:
                 pass  # skip malformed zips
         elif name.endswith(".py"):
-            # Preserve relative path for folder uploads
-            # (browser sends filename as "folder/sub/file.py")
+            # Preserve the full relative path from the browser
+            # (webkitdirectory sends e.g. "myproject/utils/helpers.py")
             rel = Path(name)
-            dest = job_dir / rel.name
+            dest = job_dir / rel
             dest.parent.mkdir(parents=True, exist_ok=True)
             dest.write_bytes(contents)
             saved.append(dest)
@@ -226,7 +253,12 @@ def _run_pipeline(job_id: str, py_files: list[Path], config: dict) -> None:
         env = os.environ.copy()
         env["PYTHONUTF8"] = "1"
         
-        # We use Popen instead of run() to allow for manual cancellation
+        # Use CREATE_NEW_PROCESS_GROUP on Windows so we can kill the
+        # entire child tree (orchestrate.py spawns further subprocesses).
+        creation_flags = 0
+        if sys.platform == "win32":
+            creation_flags = subprocess.CREATE_NEW_PROCESS_GROUP
+        
         process = subprocess.Popen(
             cmd,
             stdout=subprocess.PIPE,
@@ -236,6 +268,7 @@ def _run_pipeline(job_id: str, py_files: list[Path], config: dict) -> None:
             errors="replace",
             cwd=str(BASE_DIR),
             env=env,
+            creationflags=creation_flags,
         )
         
         with _proc_lock:
@@ -244,13 +277,12 @@ def _run_pipeline(job_id: str, py_files: list[Path], config: dict) -> None:
         try:
             stdout, stderr = process.communicate(timeout=600)
         except subprocess.TimeoutExpired:
-            process.kill()
+            _kill_process_tree(process)
             stdout, stderr = process.communicate()
             raise subprocess.TimeoutExpired(cmd, 600, stdout, stderr)
         finally:
             with _proc_lock:
-                if job_id in _active_processes:
-                    del _active_processes[job_id]
+                _active_processes.pop(job_id, None)
 
         # Check if we were cancelled while running
         if _jobs.get(job_id, {}).get("status") == "cancelled":
@@ -480,6 +512,43 @@ def list_jobs():
     ]
 
 
+@app.post("/api/v1/jobs/{job_id}/cancel", tags=["Pipeline"])
+def cancel_job(job_id: str):
+    """Manually terminate a running job and its child processes."""
+    job = _jobs.get(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found.")
+
+    if job["status"] not in ("queued", "running"):
+        return {"message": f"Job is already in status: {job['status']}"}
+
+    _update_job(job_id, status="cancelled", stage_label="cancelled")
+
+    with _proc_lock:
+        process = _active_processes.pop(job_id, None)
+        if process:
+            _kill_process_tree(process)
+
+    return {"message": "Job cancelled."}
+
+
+@app.delete("/api/v1/jobs/cleanup", tags=["Meta"])
+def cleanup_jobs():
+    """Cancel all running jobs and clear the in-memory history."""
+    global _jobs
+
+    with _proc_lock:
+        for jid, proc in list(_active_processes.items()):
+            try:
+                _kill_process_tree(proc)
+            except Exception:
+                pass
+        _active_processes.clear()
+
+    _jobs = {}
+    return {"message": "All jobs terminated and history cleared."}
+
+
 @app.websocket("/api/v1/ws/{job_id}")
 async def websocket_endpoint(websocket: WebSocket, job_id: str):
     await websocket.accept()
@@ -496,7 +565,7 @@ async def websocket_endpoint(websocket: WebSocket, job_id: str):
     try:
         while True:
             job = _jobs.get(job_id, {})
-            if job.get("status") in ("completed", "failed"):
+            if job.get("status") in ("completed", "failed", "cancelled"):
                 await asyncio.sleep(0.5)
                 break
             await asyncio.sleep(0.5)
