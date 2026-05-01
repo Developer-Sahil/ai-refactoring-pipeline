@@ -71,7 +71,23 @@ graph TD
 
 ---
 
-## 💻 3. Frontend Presentation Layer (SaaS Dashboard)
+## ⚙️ 3. Backend Infrastructure (SaaS Layer)
+
+### 1. FastAPI Integration
+*   **Rest API**: The core orchestrator is wrapped in a **FastAPI** application, exposing endpoints for job submission, status tracking, and result retrieval.
+*   **Job Queue**: Implements an asynchronous processing queue using `ThreadPoolExecutor` and an in-memory `JobStore`. This ensures that large refactoring tasks do not block the API worker threads or cause HTTP timeouts.
+
+### 2. Real-Time Communication
+*   **WebSockets**: Utilizes bidirectional WebSocket connections to stream pipeline progress (Stage 1 ➔ 4) directly to the frontend.
+*   **Polling Fallback**: The frontend is equipped with a polling mechanism to ensure status updates are received even if WebSocket connections are interrupted.
+
+### 3. Scalable File Handling
+*   **Isolated Workspaces**: Every job is assigned a unique UUID and a dedicated workspace in `backend/uploads/{job_id}/`, preventing cross-job file collisions and ensuring thread-safe processing.
+*   **Archive Processing**: Automatic extraction and recursive processing of `.zip` uploads and folder-pickers.
+
+---
+
+## 💻 4. Frontend Presentation Layer (SaaS Dashboard)
 
 ### 1. Technology Stack
 *   **Framework**: React (Bootstrapped via Vite with `--template react`).

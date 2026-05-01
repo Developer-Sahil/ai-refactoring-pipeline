@@ -15,6 +15,7 @@
 | 1.5 | **Functional Validation ImportError** | Validator (S4) | `Could not import original: ImportError: No module named 'X'` | Functional validator dynamically imports the uploaded file; project-local dependencies (e.g., `from core import …`) are absent when only a single file is uploaded | Functional check marked as failed for valid code |
 | 1.6 | **LLM Linting Violations** | Validator (S4) | E302/E303 blank-line errors, E501 line-too-long in refactored output | LLM generates slightly malformed spacing and occasional long lines; model has no PEP8 enforcement | Validation marked `warning`; triggers automatic retry pass |
 | 1.7 | **API Timeout on Large Files** | API Server | Frontend request hangs; connection drops after ~30s | Synchronous `subprocess.run()` blocked the FastAPI event loop for the full pipeline duration | Job lost; no status visible to user |
+| 1.8 | **Object Identity False Failures** | Validator (S4) | Functional tests fail on coroutines, generators, or sessions | `expected` vs `got` compare string representations (identity) of objects (e.g. `<coroutine object at 0x...>`); different instances at different memory addresses always fail even if logic is identical | Functional check fails for correct async/generator code |
 
 ---
 
@@ -29,6 +30,7 @@
 | 2.5 | 1.5 Functional ImportError | Detect `ImportError`/`ModuleNotFoundError` in `run_validation.py` and return `(True, "Skipped — unresolvable import …")` instead of failing; expose `--no-functional` flag for files with known external deps | ✅ Fixed |
 | 2.6 | 1.6 LLM Linting Violations | Automatic retry pass: inject flake8 error report back into the LLM prompt with `--fix-linting` instructions; validator re-runs on retry output | ✅ Implemented (retry loop) |
 | 2.7 | 1.7 API Timeout | Run pipeline in background `ThreadPoolExecutor` (4 workers); return `202 Accepted` with `job_id` immediately; expose `/status`, `/results`, and WebSocket endpoints | ✅ Fixed |
+| 2.8 | 1.8 Object Identity Failures | Update `result_analyzer.py` to strip hex addresses from object reprs or perform deep-property comparisons for specific types (Coroutine, Generator, Session) | 🗓️ Planned |
 
 ---
 
@@ -46,8 +48,10 @@
 
 | Priority | Item | Notes |
 |----------|------|-------|
+| High | **Object Identity Normalization** in Validator | Strip memory addresses from reprs of coroutines, generators, and DB sessions to prevent false functional failures |
 | High | **Module-Level chunk support** in `cAST` | Unblocks refactoring of script files without functions |
 | High | **Firebase Auth integration** | Protect API endpoints with Firebase ID token validation |
+| Medium | **WebSocket polling cleanup** | Fix frontend interval management to prevent redundant `/status` requests after job termination |
 | Medium | **Semantic / AST-based diffing** | Verify logic equivalence beyond syntax (compare control-flow graphs) |
 | Medium | **Streaming pipeline output** | Orchestrator emits machine-readable stage events to stdout; backend relays via WebSocket in real time instead of timed estimates |
 | Low | **Celery + Redis job queue** | Replace `ThreadPoolExecutor` for horizontal scaling and persistent job history across restarts |

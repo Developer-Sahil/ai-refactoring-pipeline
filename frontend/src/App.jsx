@@ -204,7 +204,10 @@ function MultiFileTabs({ files, originalCode }) {
       <div className="tab-content">
         <ValidationChecks report={cur.validation_report} />
         {cur.refactored_code && (
-          <DiffViewer originalCode={originalCode} refactoredCode={cur.refactored_code} />
+          <DiffViewer 
+            originalCode={cur.original_code || originalCode} 
+            refactoredCode={cur.refactored_code} 
+          />
         )}
       </div>
     </div>
@@ -605,22 +608,21 @@ function App() {
                 <div className="results-card neu-raised">
                 <div className="results-header">
                   <h3>Results — {results.filenames?.length > 1 ? `${results.filenames.length} files` : results.filename}</h3>
-                  <ValidationBadge report={results.validation_report} />
                 </div>
-
-                <ValidationChecks report={results.validation_report} />
-
                 {/* Multi-file tabs */}
-                {results.per_file_results?.length > 1 && (
+                {results.per_file_results?.length > 1 ? (
                   <MultiFileTabs files={results.per_file_results} originalCode={originalCode} />
-                )}
-
-                {/* Single-file diff viewer */}
-                {results.per_file_results?.length <= 1 && results.refactored_code && (
-                  <DiffViewer
-                    originalCode={originalCode}
-                    refactoredCode={results.refactored_code}
-                  />
+                ) : (
+                  <>
+                    <ValidationBadge report={results.validation_report} />
+                    <ValidationChecks report={results.validation_report} />
+                    {results.refactored_code && (
+                      <DiffViewer
+                        originalCode={originalCode}
+                        refactoredCode={results.refactored_code}
+                      />
+                    )}
+                  </>
                 )}
 
                 {/* Raw output collapse */}
@@ -674,6 +676,7 @@ function App() {
                 <p style={{ fontSize: '0.8rem', color: 'var(--text-color-muted)' }}>
                   Overwrite original files instead of output directory
                 </p>
+              </div>
 
               <div className="config-group" style={{ marginTop: 16 }}>
                 <div className="config-header">

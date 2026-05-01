@@ -1,14 +1,16 @@
-# AI-Powered Code Refactoring Pipeline
+# 🚀 AI Refactoring Pipeline
 
-An end-to-end processing pipeline designed to ingest, chunk, and transform source code into high-quality, structured inputs for large language model (LLM) refactoring agents.
+An industrial-grade, end-to-end processing pipeline designed to transform legacy or "messy" Python codebases into high-quality, structured, and modern software architectures. Now evolved into a full **SaaS Platform** with a real-time FastAPI backend and a stunning Neumorphic dashboard.
 
 ---
 
-## 🏗️ High-Level Architecture
+## 🏗️ System Architecture
+
+The pipeline processes code through four distinct stages to ensure maximum quality and structural integrity:
 
 ```mermaid
 graph LR
-    Source[Source Code File] --> Stage1[Stage 1: cAST]
+    Source[Source Code] --> Stage1[Stage 1: cAST]
     Stage1 --> Chunks[chunks_output.json]
     Chunks --> Stage2[Stage 2: Prompt Builder]
     Stage2 --> Prompts[prompts.json]
@@ -18,76 +20,99 @@ graph LR
     Stage4 --> Report[Validation Report]
 ```
 
+1.  **Stage 1: cAST (Deconstruction)**: Parses source files into an AST to identify logical chunks (classes, methods, functions).
+2.  **Stage 2: Prompt Builder (Transformation)**: Injects global architectural context and applies "Senior Architect" persona templates.
+3.  **Stage 3: LLM Agent (Execution)**: Utilizes **Gemini 2.5 Flash** for intelligent code renovation with nested chunk filtering.
+4.  **Stage 4: Validator (Verification)**: Performs syntax checks, AST integrity comparison, and async-aware functional parity testing.
+
+---
+
+## ✨ Key Features
+
+- **SaaS Dashboard**: A modern, interactive UI built with **React + Vite** following a **Light Mode Neumorphism** design system.
+- **RESTful API**: High-performance backend powered by **FastAPI** with asynchronous job queuing.
+- **Real-Time Updates**: Live stage-tracking via **WebSockets**, allowing users to see the pipeline progress in real-time.
+- **Multi-File Processing**: Supports uploading individual files, full folders (via `webkitdirectory`), or `.zip` archives.
+- **Global Context Awareness**: The LLM understands the entire file architecture, ensuring consistent naming and dependency management.
+- **Advanced Validation**: Detects logical regressions using behavior capture and property-based testing.
+- **Quota Optimization**: Implements batching and server-aware throttling to maximize throughput on free-tier APIs.
+
 ---
 
 ## 📁 Project Structure
 
-*   **/backend**: All backend code, including the refactoring pipeline.
-    *   **/input**: Place the source files or "messy" codebases to be refactored here.
-    *   **/pipeline**: Core modules (cAST, Prompt Builder, LLM Agent, Validator).
-    *   **/output**: Auto-generated intermediate and final refactored files.
-    *   **orchestrate.py**: Entry point to run the pipeline.
-*   **/frontend**: React + Vite SaaS UI Dashboard utilizing a Light Mode Neumorphism design system.
-*   **/docs**: Comprehensive project documentation and system design.
-*   **docker-compose.ymal**: Deployment configuration.
-*   **README.md**: Project overview and quick start.
-*   **LOG.md**: Project change history.
+```text
+root/
+├── backend/             # FastAPI Server, Refactoring Pipeline & Orchestrator
+│   ├── pipeline/        # Core processing stages (1-4)
+│   ├── input/           # Temporary storage for uploaded source files
+│   ├── output/          # Refactored outputs and validation reports
+│   └── main.py          # API Entry point
+├── frontend/            # React + Vite SaaS UI Dashboard
+│   ├── src/             # Components, Hooks, and Neumorphic Styles
+│   └── index.html       
+├── docs/                # Comprehensive project knowledge base
+│   ├── ARCHITECTURE.md  # Deep dive into system design
+│   ├── API.md           # v1 REST API Specification
+│   ├── AUDIT.md         # Project health and bug analysis
+│   └── DEPLOYMENT.md    # Production setup and Firebase Auth
+├── docker-compose.ymal  # Deployment configuration
+├── README.md            # You are here
+└── LOG.md               # Change history and developer journal
+```
 
 ---
 
 ## 🚀 Getting Started
 
-The easiest way to run the pipeline is using the orchestrator:
+### 1. Prerequisites
+- Python 3.9+
+- Node.js 18+
+- Gemini API Key (set in `.env`)
 
-### Python Backend
-
+### 2. Backend Setup (FastAPI)
 ```bash
-# Refactor a file in the input directory
-python backend/orchestrate.py backend/input/order_service.py
+# Install dependencies
+pip install -r requirements.txt
+
+# Start the API server
+uvicorn backend.main:app --reload
 ```
+The API will be available at `http://localhost:8000`. View Swagger docs at `/docs`.
 
-### React Frontend Dashboard
-
+### 3. Frontend Setup (React)
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
+The dashboard will be available at `http://localhost:5173`.
 
-### Advanced Processing Options
-
+### 4. CLI Usage (Optional)
+You can still run the pipeline directly via terminal:
 ```bash
-# Refactor an entire directory (batch mode)
-python backend/orchestrate.py backend/input/
-
-# Use batching to save API Quota (RPD)
-python backend/orchestrate.py backend/input/order_service.py --batch-size 5
-
-# Control request throttling
-python backend/orchestrate.py backend/input/order_service.py --delay 10.0
-
-# Specify an LLM model and refactor in-place
-python backend/orchestrate.py backend/input/order_service.py --model gemini-2.0-flash --in-place
+python backend/orchestrate.py backend/input/source_file.py --model gemini-2.5-flash
 ```
 
 ---
 
-## ⚡ API Quota Optimization
+## 📜 Documentation Index
 
-To survive strict free-tier limits (e.g., **20 Requests Per Day**), the pipeline implements two key features:
-1.  **Batching**: Combines multiple functions into one prompt to minimize RPD usage.
-2.  **Server-Aware Throttling**: Automatically parses `retryDelay` from API errors and waits precisely the time required by the server.
+| Resource | Description |
+|----------|-------------|
+| [ARCHITECTURE.md](file:///c:/dev/SDP/docs/ARCHITECTURE.md) | High-Level and Low-Level Design (HLD/LLD) |
+| [API.md](file:///c:/dev/SDP/docs/API.md) | REST & WebSocket API Specification |
+| [LOG.md](file:///c:/dev/SDP/LOG.md) | Full version history and recent bugfixes |
+| [AUDIT.md](file:///c:/dev/SDP/docs/AUDIT.md) | Architectural audit and validation reports |
+| [FAILURE_MITIGATION.md](file:///c:/dev/SDP/docs/failure_and_mitigation_strategies.md) | Strategy for handling edge cases and LLM failures |
 
 ---
 
-## 📜 Project Documentation
+## 🎨 Design Aesthetics
 
-*   **General History**: [LOG.md](file:///c:/dev/SDP/LOG.md)
-*   **System Design (HLD/LLD)**: [docs/ARCHITECTURE.md](file:///c:/dev/SDP/docs/ARCHITECTURE.md)
-*   **Project Audit**: [docs/AUDIT.md](file:///c:/dev/SDP/docs/AUDIT.md)
-*   **Failure & Mitigation**: [docs/failure_and_mitigation_strategies.md](file:///c:/dev/SDP/docs/failure_and_mitigation_strategies.md)
-*   **Stage 1 - cAST**: [backend/pipeline/cast/README.md](file:///c:/dev/SDP/backend/pipeline/cast/README.md)
-*   **Stage 2 - Prompt Builder**: [backend/pipeline/prompt_builder/README.md](file:///c:/dev/SDP/backend/pipeline/prompt_builder/README.md)
-*   **Stage 3 - LLM Agent**: [backend/pipeline/llm_agent/README.md](file:///c:/dev/SDP/backend/pipeline/llm_agent/README.md)
-*   **Stage 4 - Validator**: [backend/pipeline/validator/README.md](file:///c:/dev/SDP/backend/pipeline/validator/README.md)
+The frontend utilizes a **Premium Neumorphic Design** that mimics physical hardware interfaces. Every interaction is designed to feel tactile and responsive, with soft shadows and interactive depth transitions that provide a superior user experience.
 
+---
+
+## ⚖️ License
+Internal Use / Research Project.

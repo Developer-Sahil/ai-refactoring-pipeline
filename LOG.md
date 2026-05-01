@@ -116,3 +116,19 @@
 ## 2026-05-01 (Bugfix: Async functions not awaited in functional validator)
 - **Root Cause**: `execute_with_timeout()` in `test_executor.py` called functions synchronously. `async def` functions (e.g., `create_calendar_event`, `find_event`, `delete_event`) returned unawaited coroutine objects instead of results. The determinism check then compared two different coroutine objects at different memory addresses — always failing.
 - **Fix**: Added `inspect.iscoroutinefunction()` detection in `_call()`. Async functions are now executed with `asyncio.run()` inside the executor thread (safe because ThreadPoolExecutor threads have no running event loop).
+
+## 2026-05-01 (Bugfix: Multi-file diff viewer and React syntax error)
+- **Root Cause**: 
+    1. `App.jsx` had a missing `</div>` in the configuration panel, causing a frontend crash.
+    2. The frontend only stored `originalCode` for the first file, so switching tabs in `MultiFileTabs` showed incorrect diffs for subsequent files.
+- **Fix**: 
+    1. Patched `backend/main.py` to include `original_code` in every entry of `per_file_results`.
+    2. Fixed `App.jsx` syntax (missing `</div>`).
+    3. Updated `MultiFileTabs` to use `cur.original_code` for diffing.
+    4. Cleaned up the results display logic to correctly branch between single-file and multi-file views.
+
+## 2026-05-01 (Documentation Update)
+- **README Overhaul**: Completely updated `README.md` to reflect the transition from a CLI-first tool to a full SaaS platform.
+- **Feature Documentation**: Added details about FastAPI backend, WebSocket real-time updates, and the multi-file/folder/ZIP upload capabilities.
+- **Getting Started**: Updated setup instructions for both Backend (FastAPI) and Frontend (Vite).
+- **Project Structure**: Refined the project structure description to align with the latest architectural changes.

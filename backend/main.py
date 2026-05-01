@@ -259,6 +259,7 @@ def _run_pipeline(job_id: str, py_files: list[Path], config: dict) -> None:
 
         entry = {
             "filename":          py_path.name,
+            "original_code":     py_path.read_text(encoding="utf-8", errors="replace"),
             "refactored_code":   code,
             "validation_report": report,
         }
