@@ -367,16 +367,20 @@ function App() {
     setError(null);
     setResults(null);
     setJobStatus(null);
-    // Read first file for diff preview
-    const reader = new FileReader();
-    reader.onload = (e) => setOriginalCode(e.target.result);
-    reader.readAsText(valid[0]);
+    // Only read first file for diff preview if it's a python file
+    if (uploadMode !== 'zip' && valid[0].name.endsWith('.py')) {
+      const reader = new FileReader();
+      reader.onload = (e) => setOriginalCode(e.target.result);
+      reader.readAsText(valid[0]);
+    } else {
+      setOriginalCode(null);
+    }
   };
 
   const killJob = async () => {
     if (!jobId) return;
     try {
-      await axios.post(`${API_BASE}/jobs/${jobId}/cancel`);
+      await fetch(`${API_BASE}/jobs/${jobId}/cancel`, { method: 'POST' });
     } catch (err) {
       console.error("Kill failed:", err);
     }
@@ -385,7 +389,7 @@ function App() {
   const cleanupAll = async () => {
     if (!window.confirm("This will kill all running jobs and clear history. Continue?")) return;
     try {
-      await axios.delete(`${API_BASE}/jobs/cleanup`);
+      await fetch(`${API_BASE}/jobs/cleanup`, { method: 'DELETE' });
       setHistory([]);
       setJobId(null);
       setJobStatus(null);
@@ -770,7 +774,7 @@ function App() {
                     <ValidationChecks report={results.validation_report} />
                     {results.refactored_code && (
                       <DiffViewer
-                        originalCode={originalCode}
+                        originalCode={results.per_file_results?.[0]?.original_code || originalCode}
                         refactoredCode={results.refactored_code}
                       />
                     )}
