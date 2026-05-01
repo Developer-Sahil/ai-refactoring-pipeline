@@ -220,7 +220,7 @@ function App() {
   const [inPlace, setInPlace]           = useState(false);
   const [batchSize, setBatchSize]       = useState(3);
   const [delay, setDelay]               = useState(2);
-  const [model, setModel]               = useState('gemini-2.5-flash');
+  const [model, setModel]               = useState('gemma-3-1b');
   const [noFunctional, setNoFunctional] = useState(false);
   const [uploadMode, setUploadMode]     = useState('file'); // 'file' | 'folder' | 'zip'
 
@@ -343,6 +343,27 @@ function App() {
     reader.readAsText(valid[0]);
   };
 
+  const killJob = async () => {
+    if (!jobId) return;
+    try {
+      await axios.post(`${API_BASE}/jobs/${jobId}/cancel`);
+    } catch (err) {
+      console.error("Kill failed:", err);
+    }
+  };
+
+  const cleanupAll = async () => {
+    if (!window.confirm("This will kill all running jobs and clear history. Continue?")) return;
+    try {
+      await axios.delete(`${API_BASE}/jobs/cleanup`);
+      setHistory([]);
+      setJobId(null);
+      setJobStatus(null);
+    } catch (err) {
+      console.error("Cleanup failed:", err);
+    }
+  };
+
   const handleFileChange = (e) => {
     if (e.target.files?.length) processFiles(e.target.files);
   };
@@ -456,6 +477,16 @@ function App() {
         {/* ── History View ───────────────────────────────────────────────── */}
         {activeView === 'history' && (
           <div className="history-list">
+            <div className="history-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 style={{ margin: 0 }}>Recent Jobs</h3>
+              <button 
+                className="mode-chip neu-raised" 
+                style={{ padding: '6px 12px', fontSize: '0.8rem' }}
+                onClick={cleanupAll}
+              >
+                🗑 Clear All
+              </button>
+            </div>
             {jobs.length === 0 ? (
               <div className="empty-state neu-raised">
                 <p>No jobs yet. Run your first refactoring from the Dashboard.</p>
@@ -563,9 +594,20 @@ function App() {
                 <div className="pipeline-card neu-raised">
                   <div className="pipeline-header">
                     <h3>Pipeline Status</h3>
-                    <span className={`status-chip status-${pipelineState}`}>
-                      {pipelineState}
-                    </span>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      {isRunning && (
+                        <button 
+                          className="kill-btn neu-raised" 
+                          onClick={killJob}
+                          title="Terminate running job"
+                        >
+                          ✕ Stop
+                        </button>
+                      )}
+                      <span className={`status-chip status-${pipelineState}`}>
+                        {pipelineState}
+                      </span>
+                    </div>
                   </div>
 
                   {/* Job ID badge */}
@@ -583,14 +625,33 @@ function App() {
                                 : stage === stageNum ? 'active'
                                 : '';
                       return (
-                        <div key={s.label} className={`step neu-raised ${cls}`} title={s.desc}>
-                          {stage > stageNum ? '✓' : stageNum}
+                        <div key={s.label} className={`step-container`}>
+                          <div className={`step neu-raised ${cls}`} title={s.desc}>
+                            {stage > stageNum ? '✓' : stageNum}
+                          </div>
                         </div>
                       );
                     })}
                   </div>
                   <div className="step-labels">
-                    {STAGE_META.map(s => <span key={s.label}>{s.label}</span>)}
+                    {STAGE_META.map((s, i) => {
+                      const stageNum = i + 1;
+                      const startTime = jobStatus?.stage_times?.[stageNum.toString()];
+                      const endTime   = jobStatus?.stage_times?.[(stageNum + 1).toString()];
+                      let duration = null;
+                      if (startTime && endTime) {
+                        duration = Math.max(0, Math.round((new Date(endTime) - new Date(startTime)) / 1000));
+                      }
+                      
+                      return (
+                        <div key={s.label} className="step-label-item">
+                          <div className="label-text">{s.label}</div>
+                          {duration !== null && (
+                            <div className="duration-tag">{duration}s</div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
 
                   {/* Active stage description */}
@@ -598,6 +659,67 @@ function App() {
                     <div className="stage-desc neu-inset">
                       <div className="spinner"></div>
                       {STAGE_META[stage - 1].desc}…
+                    </div>
+                  )}
+
+                  {/* ── Pipeline Runtime Breakdown ─────────────────────── */}
+                  {(() => {
+                    const times = jobStatus?.stage_times ?? {};
+                    const rows = STAGE_META.map((s, i) => {
+                      const stageNum  = i + 1;
+                      const start     = times[stageNum.toString()];
+                      const end       = times[(stageNum + 1).toString()];
+                      const completed = stage > stageNum;
+                      const active    = stage === stageNum;
+                      const dur = (start && end)
+                        ? Math.round((new Date(end) - new Date(start)) / 1000)
+                        : null;
+                      return { label: s.label, dur, completed, active };
+                    });
+
+                    // Total: from stage 1 start to stage 5 (done) timestamp
+                    const totalStart = times['1'];
+                    const totalEnd   = times['5'];
+                    const totalDur   = (totalStart && totalEnd)
+                      ? Math.round((new Date(totalEnd) - new Date(totalStart)) / 1000)
+                      : null;
+
+                    const hasAnyData = rows.some(r => r.dur !== null || r.active || r.completed);
+                    if (!hasAnyData) return null;
+
+                    return (
+                      <div className="runtime-panel neu-inset">
+                        <div className="runtime-title">⏱ Pipeline Runtime</div>
+                        <div className="runtime-rows">
+                          {rows.map(r => (
+                            <div key={r.label} className={`runtime-row ${r.completed ? 'done' : r.active ? 'active' : 'pending'}`}>
+                              <div className="runtime-stage-dot" />
+                              <span className="runtime-label">{r.label}</span>
+                              <span className="runtime-val">
+                                {r.dur !== null
+                                  ? `${r.dur}s`
+                                  : r.active ? <span className="runtime-running">running…</span>
+                                  : '—'}
+                              </span>
+                            </div>
+                          ))}
+                          <div className="runtime-total">
+                            <span>Total</span>
+                            <span>{totalDur !== null ? `${totalDur}s` : '—'}</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Job-specific error */}
+                  {jobStatus?.error && (
+                    <div className="alert error-alert job-error neu-raised" style={{ marginTop: 16 }}>
+                      <span className="alert-icon">✖</span>
+                      <div className="error-content">
+                        <strong>Pipeline Failed</strong>
+                        <p>{jobStatus.error}</p>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -657,9 +779,9 @@ function App() {
                   style={{ appearance: 'none', cursor: 'pointer' }}
                   disabled={isRunning}
                 >
+                  <option value="gemma-3-1b">Gemma 3 1B</option>
                   <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
                   <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
-                  <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
                 </select>
               </div>
 

@@ -22,7 +22,7 @@ graph LR
 
 1.  **Stage 1: cAST (Deconstruction)**: Parses source files into an AST to identify logical chunks (classes, methods, functions).
 2.  **Stage 2: Prompt Builder (Transformation)**: Injects global architectural context and applies "Senior Architect" persona templates.
-3.  **Stage 3: LLM Agent (Execution)**: Utilizes **Gemini 2.5 Flash** for intelligent code renovation with nested chunk filtering.
+3.  **Stage 3: LLM Agent (Execution)**: Utilizes **Gemma 3 1B** for intelligent code renovation with nested chunk filtering.
 4.  **Stage 4: Validator (Verification)**: Performs syntax checks, AST integrity comparison, and async-aware functional parity testing.
 
 ---
@@ -75,8 +75,8 @@ root/
 # Install dependencies
 pip install -r requirements.txt
 
-# Start the API server
-uvicorn backend.main:app --reload
+# Start the API server (run backend without --reload)
+uvicorn backend.main:app
 ```
 The API will be available at `http://localhost:8000`. View Swagger docs at `/docs`.
 
@@ -91,7 +91,7 @@ The dashboard will be available at `http://localhost:5173`.
 ### 4. CLI Usage (Optional)
 You can still run the pipeline directly via terminal:
 ```bash
-python backend/orchestrate.py backend/input/source_file.py --model gemini-2.5-flash
+python backend/orchestrate.py backend/input/source_file.py --model gemma-3-1b
 ```
 
 ---

@@ -21,7 +21,7 @@ graph TD
 
     subgraph "Stage 3: LLM Agent (Execution)"
         K --> L[Nested Chunk Filter]
-        L --> M[Gemini 2.5 Flash API]
+        L --> M[Gemma 3 1B API]
         M --> P[Bottom-Up Code Reassembly]
         P --> Q[Output .refactored.py]
     end
@@ -37,7 +37,7 @@ graph TD
     end
 
     subgraph "Infrastructure"
-        R[llm_client.py] -.-> N[Gemini 2.5 Flash API]
+        R[llm_client.py] -.-> N[Gemma 3 1B API]
         T[Global Context Block] -.-> M
     end
 ```
@@ -58,8 +58,8 @@ graph TD
 *   **Strategy**: To prevent file corruption when refactoring nested methods, the agent now calculates the "Inclusivity Scope" for every prompt. 
 *   **Rule**: If `Chunk A` is contained within `Chunk B`, its prompt is automatically skipped during execution, as the parent's refactoring inherently includes the child.
 
-### 4. Transition to Gemini 2.5 Flash
-*   **Reasoning**: Upgraded the core engine to `gemini-2.5-flash` to leverage its superior reasoning capabilities and high token limits.
+### 4. Transition to Gemma 3 1B
+*   **Reasoning**: Upgraded the core engine to `gemma-3-1b` to leverage its superior reasoning capabilities and high token limits.
 
 ### 5. Automated Validation Gate (Stage 4)
 *   **Syntax & AST**: Verifies compilation correctness and structural integrity.

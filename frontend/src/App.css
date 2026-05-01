@@ -277,6 +277,22 @@
 
 .alert-icon { font-size: 1.2rem; }
 
+.job-error {
+  background: #fff5f5;
+  border: 1px solid #feb2b2;
+  box-shadow: var(--neumorphic-raised);
+}
+.error-content strong {
+  display: block;
+  font-size: 0.95rem;
+  margin-bottom: 2px;
+}
+.error-content p {
+  margin: 0;
+  font-size: 0.85rem;
+  opacity: 0.9;
+}
+
 /* ── Pipeline card ───────────────────────────────────────────────────────── */
 .pipeline-card {
   padding: 28px 32px;
@@ -301,6 +317,25 @@
 .status-completed { background: #c6f6d5; color: #2f855a; }
 .status-failed    { background: #fed7d7; color: #c53030; }
 
+.kill-btn {
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: none;
+  background: var(--bg-color);
+  color: #e53e3e;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.kill-btn:hover {
+  box-shadow: var(--neumorphic-inset);
+  color: #c53030;
+}
+
 .job-id-badge {
   display: flex;
   align-items: center;
@@ -316,8 +351,9 @@
 .steps {
   display: flex;
   justify-content: space-between;
-  margin-top: 8px;
+  margin-top: 12px;
   position: relative;
+  padding: 0 4px;
 }
 .steps::before {
   content: '';
@@ -331,6 +367,13 @@
   z-index: 1;
   border-radius: 2px;
 }
+.step-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 2;
+}
+
 .step {
   width: 44px;
   height: 44px;
@@ -338,11 +381,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 2;
   font-weight: 600;
   font-size: 0.9rem;
   color: var(--text-color-muted);
   transition: all 0.3s ease;
+  background: var(--bg-color);
 }
 .step.active    { color: var(--accent-color); box-shadow: var(--neumorphic-inset); }
 .step.completed { color: white; background: var(--accent-color); }
@@ -355,6 +398,25 @@
   color: var(--text-color-muted);
 }
 
+.step-label-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 60px; /* matches step width + margin */
+  text-align: center;
+}
+
+.label-text {
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.duration-tag {
+  color: var(--accent-color);
+  font-weight: 700;
+  font-size: 0.7rem;
+}
+
 .stage-desc {
   display: flex;
   align-items: center;
@@ -365,6 +427,91 @@
   color: var(--text-color-muted);
   border-radius: 10px;
 }
+
+/* ── Pipeline Runtime Panel ───────────────────────────────────────────────── */
+.runtime-panel {
+  margin-top: 20px;
+  padding: 14px 18px;
+  border-radius: 12px;
+}
+
+.runtime-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-color-muted);
+  margin-bottom: 10px;
+}
+
+.runtime-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.runtime-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  font-size: 0.82rem;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+.runtime-stage-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--text-color-muted);
+  opacity: 0.3;
+  transition: all 0.3s;
+}
+.runtime-row.done .runtime-stage-dot   { background: var(--accent-color); opacity: 1; }
+.runtime-row.active .runtime-stage-dot { background: #ed8936; opacity: 1; box-shadow: 0 0 6px #ed8936; }
+
+.runtime-label {
+  flex: 1;
+  font-weight: 500;
+  color: var(--text-color-muted);
+}
+.runtime-row.done .runtime-label   { color: var(--text-color); }
+.runtime-row.active .runtime-label { color: #d69e2e; font-weight: 600; }
+
+.runtime-val {
+  font-family: 'Fira Code', 'Courier New', monospace;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-color-muted);
+  min-width: 40px;
+  text-align: right;
+}
+.runtime-row.done .runtime-val { color: var(--accent-color); }
+
+.runtime-running {
+  color: #ed8936;
+  font-style: italic;
+  font-size: 0.78rem;
+}
+
+.runtime-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0 0;
+  margin-top: 4px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-color);
+  border-top: 1.5px solid var(--shadow-dark);
+}
+.runtime-total span:last-child {
+  font-family: 'Fira Code', 'Courier New', monospace;
+  color: var(--accent-color);
+  font-size: 0.85rem;
+}
+
 
 /* ── Spinner ─────────────────────────────────────────────────────────────── */
 @keyframes spin { to { transform: rotate(360deg); } }

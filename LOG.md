@@ -127,7 +127,35 @@
     3. Updated `MultiFileTabs` to use `cur.original_code` for diffing.
     4. Cleaned up the results display logic to correctly branch between single-file and multi-file views.
 
-## 2026-05-01 (Documentation Update)
+## 2026-05-01 (Job Control & Maintenance)
+- **Manual Cancellation**: Implemented a "Kill Job" feature with backend subprocess termination support.
+- **Cleanup API**: Added a global cleanup endpoint to terminate all running jobs and wipe history.
+- **Frontend Enhancements**: Added "Stop" buttons to active pipeline cards and a "Clear All" button to the History view.
+- **Project Tracking**: Created `docs/TASKS.md` to formalize the roadmap and track persistent validator issues.
+- **Audit Update**: Refined `docs/AUDIT.md` to reflect the current high-health state of the SaaS platform.
+
+## 2026-05-01 (Prompt Engineering: Linting Fixes)
+- **PEP 8 Compliance**: Updated the Python style note in `prompt_templates.py` to explicitly require exactly 2 blank lines between top-level definitions (fixing E302 errors).
+- **Template Bugfix**: Discovered and fixed a bug where the `{style_note}` instruction was being omitted from the rendered prompts in `build_standard_prompt` and `build_batch_prompt`.
+- **Architect Consistency**: This ensures the LLM receives the "Senior Architect" style guidelines correctly, leading to cleaner, more compliant code.
+
+## 2026-05-01 (Maintenance)
+- **Server Shutdown**: Terminated the FastAPI backend (Port 8000) and Vite frontend (Port 5173) development servers to conclude the session.
+
+## 2026-05-01 (Model Upgrade)
+- **Engine Transition**: Upgraded the default refactoring engine from Gemini 2.5 Flash to **Gemma 3 1B**.
+- **Frontend Integration**: Updated the dashboard configuration panel to prioritize Gemma 3 1B in the model selector.
+- **Backend Defaults**: Synchronized the FastAPI refactor endpoint to use Gemma 3 1B as the default model.
+- **Documentation**: Updated `README.md` and `ARCHITECTURE.md` to reflect the new AI core.
+
+## 2026-05-01 (UI/UX Hardening)
+- **Stage Timestamps**: Updated the backend to record ISO timestamps for each pipeline stage.
+- **Real-Time Progress**: The frontend now displays the exact time of completion for each processing stage (cAST, Prompt Builder, etc.) directly under the pipeline steps.
+- **Enhanced Error Handling**: 
+    - Implemented a dedicated "Pipeline Failed" alert block that displays the specific error message from the backend.
+    - Improved CSS for error visibility with a soft red skeuomorphic warning style.
+    - Added safety checks to prevent UI crashes when accessing nested job status properties.
+
 - **README Overhaul**: Completely updated `README.md` to reflect the transition from a CLI-first tool to a full SaaS platform.
 - **Feature Documentation**: Added details about FastAPI backend, WebSocket real-time updates, and the multi-file/folder/ZIP upload capabilities.
 - **Getting Started**: Updated setup instructions for both Backend (FastAPI) and Frontend (Vite).

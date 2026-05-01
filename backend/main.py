@@ -31,7 +31,7 @@ import threading
 import uuid
 import zipfile
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Any, List
 
@@ -90,6 +90,10 @@ _jobs: dict[str, dict[str, Any]] = {}
 _ws_connections: dict[str, list[WebSocket]] = {}
 _ws_lock = threading.Lock()
 
+# Track active subprocesses for cancellation
+_active_processes: dict[str, subprocess.Popen] = {}
+_proc_lock = threading.Lock()
+
 
 def _new_job(job_id: str, filenames: list[str], config: dict) -> dict:
     return {
@@ -102,6 +106,7 @@ def _new_job(job_id: str, filenames: list[str], config: dict) -> dict:
         "status":      "queued",
         "created_at":  datetime.now(timezone.utc).isoformat(),
         "updated_at":  datetime.now(timezone.utc).isoformat(),
+        "stage_times": {},
         "stdout":      "",
         "stderr":      "",
         "exit_code":   None,
@@ -187,6 +192,10 @@ async def _save_uploads(
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _advance_stage(job_id: str, stage: int) -> None:
+    if job_id not in _jobs: return
+    now = datetime.now(timezone.utc).isoformat()
+    # We update the dictionary directly to avoid race conditions with stage_times
+    _jobs[job_id]["stage_times"][stage] = now
     _update_job(job_id, stage=stage, stage_label=STAGE_LABELS[stage], status="running")
 
 
@@ -216,16 +225,37 @@ def _run_pipeline(job_id: str, py_files: list[Path], config: dict) -> None:
     try:
         env = os.environ.copy()
         env["PYTHONUTF8"] = "1"
-        process = subprocess.run(
+        
+        # We use Popen instead of run() to allow for manual cancellation
+        process = subprocess.Popen(
             cmd,
-            capture_output=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
             text=True,
-            encoding="utf-8",    # decode stdout/stderr as UTF-8, not cp1252
-            errors="replace",    # replace undecodable bytes instead of crashing
-            timeout=600,
+            encoding="utf-8",
+            errors="replace",
             cwd=str(BASE_DIR),
             env=env,
         )
+        
+        with _proc_lock:
+            _active_processes[job_id] = process
+            
+        try:
+            stdout, stderr = process.communicate(timeout=600)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            stdout, stderr = process.communicate()
+            raise subprocess.TimeoutExpired(cmd, 600, stdout, stderr)
+        finally:
+            with _proc_lock:
+                if job_id in _active_processes:
+                    del _active_processes[job_id]
+
+        # Check if we were cancelled while running
+        if _jobs.get(job_id, {}).get("status") == "cancelled":
+            return
+
     except subprocess.TimeoutExpired:
         for t in (t2, t3, t4): t.cancel()
         _update_job(job_id, stage=0, stage_label="idle", status="failed",
@@ -271,6 +301,42 @@ def _run_pipeline(job_id: str, py_files: list[Path], config: dict) -> None:
             primary_report = report
 
     final_status = "completed" if process.returncode == 0 else "failed"
+    
+    # Check if job was cancelled during the final moments
+    if _jobs.get(job_id, {}).get("status") == "cancelled":
+        return
+
+    now_ts = datetime.now(timezone.utc)
+    now    = now_ts.isoformat()
+
+    if job_id in _jobs:
+        times = _jobs[job_id]["stage_times"]
+        times[5] = now
+
+        # Backfill any missing intermediate stage timestamps (2, 3, 4) so the
+        # frontend always has enough data to compute per-stage durations.
+        # We distribute the total elapsed time evenly across the 4 stages.
+        if 1 in times:
+            start_ts = datetime.fromisoformat(times[1])
+            total_sec = (now_ts - start_ts).total_seconds()
+            
+            # Non-decreasing backfill: ensure each stage is at least the previous one
+            prev_ts_iso = times[1]
+            for stage_n in (2, 3, 4):
+                if stage_n not in times:
+                    fraction = (stage_n - 1) / 4
+                    # Interpolated value relative to start
+                    interp_sec = fraction * total_sec
+                    interp_ts = start_ts + timedelta(seconds=interp_sec)
+                    
+                    # Clamp to ensure it's not earlier than the previous stage
+                    prev_ts = datetime.fromisoformat(prev_ts_iso)
+                    if interp_ts < prev_ts:
+                        interp_ts = prev_ts
+                    
+                    times[stage_n] = interp_ts.isoformat()
+                
+                prev_ts_iso = times[stage_n]
 
     _update_job(
         job_id,
@@ -302,7 +368,7 @@ def health_check():
 @app.post("/api/v1/refactor", tags=["Pipeline"], status_code=202)
 async def submit_refactor_job(
     files:         List[UploadFile] = File(...),
-    model:         str   = Form("gemini-2.5-flash"),
+    model:         str   = Form("gemma-3-1b"),
     batch_size:    int   = Form(3),
     delay:         float = Form(2.0),
     in_place:      bool  = Form(False),
@@ -369,6 +435,7 @@ def get_job_status(job_id: str):
         "status":      job["status"],
         "stage":       job["stage"],
         "stage_label": job["stage_label"],
+        "stage_times": job.get("stage_times", {}),
         "created_at":  job["created_at"],
         "updated_at":  job["updated_at"],
         "error":       job.get("error"),

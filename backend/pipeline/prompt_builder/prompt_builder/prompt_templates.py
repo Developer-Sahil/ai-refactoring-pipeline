@@ -136,7 +136,7 @@ _CONSTRAINTS_BY_CHUNK_TYPE: dict[str, list[str]] = {
 }
 
 _LANGUAGE_STYLE_NOTE: dict[str, str] = {
-    "python":     "Follow PEP 8 and PEP 257 conventions.",
+    "python":     "Follow PEP 8 and PEP 257. Ensure exactly 2 blank lines between top-level functions and classes (E302).",
     "javascript": "Follow Airbnb / StandardJS style conventions where applicable.",
     "typescript": "Follow TypeScript best practices; prefer explicit types over `any`.",
     "java":       "Follow Oracle Java Code Conventions and Effective Java guidelines.",
@@ -233,6 +233,7 @@ def build_standard_prompt(ctx: PromptContext) -> str:
 
         ── Constraints ──────────────────────────────────────────────────────────
         {constraints}
+        Style: {style_note}
 
         ── Instructions ─────────────────────────────────────────────────────────
         Refactor ONLY the target chunk `{display_name}`. 
@@ -465,6 +466,8 @@ def build_batch_prompt(
         {all_chunks_text}
 
         ── Instructions ─────────────────────────────────────────────────────────
+        Style Guide: {style_note}
+        
         For EACH chunk, return the refactored version wrapped in these exact delimiters:
         
         <chunk id="chunk_id_here">
