@@ -16,10 +16,10 @@ The entire process is orchestrated through the entry point in `llm_agent/run_age
   
 - **Function**: `run(...)`
   - Loads the Stage 2 output JSON file.
-  - Validates the existence of the original source file referenced within the JSON payload.
+  - Validates the existence of the original source file.
   - Instantiates the `LLMClient`.
-  - Creates a copy of the source file (e.g., `filename.refactored.ext`) if not running in-place.
-  - **Crucial Step**: Sorts the prompt chunks by `start_line` in **descending order** (bottom-to-top). This prevents a replacement from shifting the line numbers of subsequent target chunks.
+  - Creates a copy of the source file (e.g., `filename.refactored.py`) in the **job-specific output directory**.
+  - **Crucial Step**: Sorts the prompt chunks by `start_line` in **descending order** (bottom-to-top) to maintain line-index stability during replacement.
 
 ### 2. Calling the LLM (`llm_client.py`)
 For each chunk in the sorted list:
@@ -31,9 +31,10 @@ For each chunk in the sorted list:
 
 ### 3. Parsing the Output (`response_parser.py`)
 - **Function**: `parse_code_block(response_text)`
-  - Uses regular expressions to scan the LLMl response for markdown code blocks (````python ... ````).
-  - Strips the markdown wrapper and language identifier.
-  - Returns the raw refactored code string. Falls back to the raw response if no formatting blocks are found.
+  - Used for single-chunk responses. Strips markdown wrappers.
+- **Function**: `parse_batch_response(response_text)`
+  - Used for batched responses. Parses XML-like `<chunk id="...">` tags to extract multiple refactored segments from a single LLM output.
+  - Ensures each segment is mapped back to its correct `chunk_id`.
 
 ### 4. Replacing the Code (`code_replacer.py`)
 - **Function**: `replace_chunk(source_path, start_line, end_line, new_code, output_path)`

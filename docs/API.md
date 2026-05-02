@@ -29,11 +29,11 @@ Upload a `.py` file and enqueue a background refactoring job.
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `files` | File[] | required | One or more `.py` files, or a single `.zip` archive |
-| `model` | string | `gemini-2.5-flash` | LLM model name |
+| `model` | string | `gemma-3-1b-it` | LLM model name (e.g., `gemma-3-4b-it`, `gemma-3-27b-it`) |
 | `batch_size` | int | 3 | Functions per prompt batch |
 | `delay` | float | 2.0 | Throttle delay (seconds) |
-| `in_place` | bool | false | Overwrite original files |
-| `no_functional` | bool | false | Skip behavioral/functional validation in Stage 4 |
+| `in_place` | bool | false | Overwrite original files in `output/` |
+| `no_functional` | bool | false | Skip behavioral validation in Stage 4 |
 
 **Upload modes supported:**
 - Single `.py` file
@@ -70,7 +70,13 @@ Upload a `.py` file and enqueue a background refactoring job.
 ```
 
 Possible `status` values: `queued` | `running` | `completed` | `failed`
-Possible `stage` values: 0 (idle) → 1 (cAST) → 2 (prompt_builder) → 3 (llm_agent) → 4 (validator) → 5 (done)
+Possible `stage` values: 
+- 0: Idle
+- 1: cAST (Chunking)
+- 2: Prompt Builder
+- 3: LLM Agent (includes Stage 3.5 Auto-fix)
+- 4: Validator
+- 5: Done
 
 ---
 

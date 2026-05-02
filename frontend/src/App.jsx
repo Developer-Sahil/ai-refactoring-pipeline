@@ -221,7 +221,7 @@ function App() {
   const [inPlace, setInPlace]           = useState(false);
   const [batchSize, setBatchSize]       = useState(3);
   const [delay, setDelay]               = useState(2);
-  const [model, setModel]               = useState('gemma-3-1b');
+  const [model, setModel]               = useState('gemma-3-1b-it');
   const [noFunctional, setNoFunctional] = useState(false);
   const [uploadMode, setUploadMode]     = useState('file'); // 'file' | 'folder' | 'zip'
 
@@ -624,7 +624,7 @@ function App() {
               )}
 
               {/* Pipeline tracker */}
-              {(stage > 0 || isRunning) && (
+              {((stage > 0 && stage < 5) || isRunning) && (
                 <div className="pipeline-card neu-raised">
                   <div className="pipeline-header">
                     <h3>Pipeline Status</h3>
@@ -689,10 +689,10 @@ function App() {
                   </div>
 
                   {/* Active stage description */}
-                  {stage > 0 && stage <= 4 && (
+                  {stage > 0 && stage < 5 && (
                     <div className="stage-desc neu-inset">
                       <div className="spinner"></div>
-                      {STAGE_META[stage - 1].desc}…
+                      {STAGE_META[Math.floor(stage) - 1]?.desc || 'Processing...'}…
                     </div>
                   )}
 
@@ -813,9 +813,16 @@ function App() {
                   style={{ appearance: 'none', cursor: 'pointer' }}
                   disabled={isRunning}
                 >
-                  <option value="gemma-3-1b">Gemma 3 1B</option>
-                  <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
-                  <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+                  <optgroup label="Gemma 3 (New)">
+                    <option value="gemma-3-1b-it">Gemma 3 1B (Fast)</option>
+                    <option value="gemma-3-4b-it">Gemma 3 4B (Balanced)</option>
+                    <option value="gemma-3-12b-it">Gemma 3 12B (Advanced)</option>
+                    <option value="gemma-3-27b-it">Gemma 3 27B (Expert)</option>
+                  </optgroup>
+                  <optgroup label="Gemini 2.5">
+                    <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+                    <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+                  </optgroup>
                 </select>
               </div>
 

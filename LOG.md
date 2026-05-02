@@ -164,7 +164,15 @@
     - Improved CSS for error visibility with a soft red skeuomorphic warning style.
     - Added safety checks to prevent UI crashes when accessing nested job status properties.
 
-- **README Overhaul**: Completely updated `README.md` to reflect the transition from a CLI-first tool to a full SaaS platform.
-- **Feature Documentation**: Added details about FastAPI backend, WebSocket real-time updates, and the multi-file/folder/ZIP upload capabilities.
-- **Getting Started**: Updated setup instructions for both Backend (FastAPI) and Frontend (Vite).
-- **Project Structure**: Refined the project structure description to align with the latest architectural changes.
+## 2026-05-02 [Gemma 3 Family & Job Isolation]
+- **Expanded Model Selection**: Added Gemma 3 4B, 12B, and 27B to the configuration options.
+- **Job-Specific Outputs**: Refactored `main.py` and `orchestrate.py` to use isolated output directories (`backend/output/<job_id>`), resolving file collision bugs.
+- **Quality Reinforcement**: Updated prompt templates to explicitly mandate architectural docstrings and PEP 484 type hints across all chunk types.
+- **Exit Code Logic**: LLM agent now exits with code 1 if no refactorings were performed, improving pipeline reliability.
+
+## 2026-05-02 (Stability & Quality Hardening)
+- **Model Identity Fix**: Corrected the model identifier from `gemma-3-1b` to **`gemma-3-1b-it`** across frontend and backend, resolving `404 NOT_FOUND` API errors.
+- **Auto-Fixing Linter**: Integrated **Ruff** into `orchestrate.py` as Stage 3.5. The pipeline now automatically formats and fixes style issues (like E302) before final validation, ensuring production-grade code output.
+- **Timeout Resilience**: Increased global pipeline timeout from 10 to **30 minutes** to handle project-scale refactoring and API rate-limit retries.
+- **Windows Compat**: Forced `PYTHONUTF8=1` in all subprocess environments to prevent `charmap` encoding crashes in terminal output.
+- **Audit Update**: Updated `docs/AUDIT.md` with deep-dive analysis of these infrastructure improvements.

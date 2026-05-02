@@ -25,23 +25,23 @@ from typing import Callable, Optional
 
 _GOALS_BY_CHUNK_TYPE: dict[str, list[str]] = {
     "class": [
-        "Improve class and attribute naming to reflect their purpose clearly (intent-revealing names)",
-        "Add comprehensive docstrings following language conventions (e.g., PEP 257 for Python)",
-        "Ensure the class has a single, well-defined responsibility (Single Responsibility Principle)",
-        "Simplify complex methods — extract helpers where appropriate",
-        "Ensure consistent use of access modifiers and visibility conventions",
-        "Improve readability and maintainability of the overall class structure",
-        "Add inline comments to explain complex or non-obvious internal logic",
+        "Add comprehensive class-level docstrings following PEP 257 conventions.",
+        "Improve class and attribute naming to reflect their purpose clearly (intent-revealing names).",
+        "Ensure the class has a single, well-defined responsibility (Single Responsibility Principle).",
+        "Simplify complex methods — extract helpers where appropriate.",
+        "Ensure consistent use of access modifiers and visibility conventions.",
+        "Improve readability and maintainability of the overall class structure.",
+        "Add inline comments to explain 'why' for complex or non-obvious internal logic.",
+        "CRITICAL: If the class lacks a high-level architectural summary, you MUST add one.",
     ],
     "function": [
-        "Improve function and parameter naming to express intent clearly",
-        "Add comprehensive docstrings summarizing purpose, parameters, and return values",
-        "Simplify conditional logic and reduce nesting (e.g., using guard clauses)",
-        "Replace magic numbers or strings with named constants or configuration",
-        "Improve readability without altering the function signature",
-        "Ensure proper error handling and input validation (Fail-Fast principle)",
-        "Add type hints/annotations where applicable (e.g., Python 3.9+)",
-        "Preserve and enhance internal comments that explain 'why' instead of 'what'",
+        "Add comprehensive type hints/annotations (PEP 484) to all parameters and the return value.",
+        "Add a high-quality docstring (PEP 257) summarizing purpose, parameters, and return values, even if the function is simple.",
+        "Simplify conditional logic and reduce nesting (e.g., using guard clauses).",
+        "Replace magic numbers or strings with named constants or configuration.",
+        "Improve readability without altering the function signature.",
+        "Ensure proper error handling and input validation (Fail-Fast principle).",
+        "Preserve and enhance internal comments that explain 'why' instead of 'what'.",
     ],
     "async_function": [
         "Improve function and parameter naming to express intent clearly",
@@ -207,9 +207,15 @@ def build_standard_prompt(ctx: PromptContext) -> str:
     context_line = f"\nContext: {ctx.context_note}\n" if ctx.context_note else ""
 
     template = textwrap.dedent("""
-        ─ ─ Final Goal ───────────────────────────────────────────────────────────
         Transform this code into clean, well-documented, and industrial-grade software
         that follows modern system design principles (SOLID, DRY, KISS).
+        
+        ENFORCED QUALITY STANDARD:
+        - All functions MUST have PEP 484 type hints for all parameters and return types.
+        - All functions MUST have PEP 257 docstrings with 'Args' and 'Returns' sections.
+        - All classes MUST have architectural docstrings.
+        - Logic must be simplified (e.g. guard clauses, list comprehensions).
+        - Variable names must be intention-revealing.
 
         ── Global Architectural Context ──────────────────────────────────────────
         The following is the full content of `{file_name}` for context:
@@ -239,6 +245,9 @@ def build_standard_prompt(ctx: PromptContext) -> str:
         Refactor ONLY the target chunk `{display_name}`. 
         Use the global context to ensure your changes are consistent with the rest of the file.
         Return ONLY the refactored code block for this specific chunk.
+        
+        CRITICAL: Always add value. At minimum, add comprehensive PEP 484 type hints and a PEP 257 docstring if they are missing or incomplete. Never return the original code unchanged if it lacks documentation or types.
+        
         Do not include explanations, markdown prose, or diff output.
         The returned code must be a drop-in replacement for the original chunk.
     """).strip()
@@ -467,6 +476,11 @@ def build_batch_prompt(
 
         ── Instructions ─────────────────────────────────────────────────────────
         Style Guide: {style_note}
+
+        CRITICAL QUALITY REQUIREMENTS:
+        - For EVERY chunk, you MUST add comprehensive PEP 484 type hints (for Python) or equivalent for the language.
+        - For EVERY chunk, you MUST add a high-quality docstring/JSDoc summarizing purpose, parameters, and return values.
+        - Never return a chunk unchanged if it lacks documentation or types. Always add value.
         
         For EACH chunk, return the refactored version wrapped in these exact delimiters:
         
@@ -476,8 +490,9 @@ def build_batch_prompt(
 
         Example format:
         <chunk id="chunk_1">
-        def my_function():
-            pass
+        def my_function(a: int, b: int) -> int:
+            \"\"\"Add two integers together.\"\"\"
+            return a + b
         </chunk>
         
         Do not include any prose, explanations, or additional text outside these tags.

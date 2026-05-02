@@ -31,9 +31,10 @@ The entire process is orchestrated through the entry point in `prompt_builder/bu
 
 ### 4. Building Prompt Contexts (`prompt_builder/build_prompts.py`)
 For every chunk in the input data:
-- **Function**: `_chunk_to_context(chunk, language)`
-  - Converts a raw dictionary chunk into a typed `PromptContext` object (defined in `prompt_builder/prompt_templates.py`).
-  - Maps common attributes like `chunk_id`, `chunk_type`, `name`, `code`, `start_line`, and `end_line`.
+- **Function**: `_chunk_to_context(chunk, language, full_file_content)`
+  - Converts a raw dictionary chunk into a typed `PromptContext` object.
+  - Injects the **full source file content** into every chunk context to provide the LLM with global architectural awareness.
+  - Maps attributes like `chunk_id`, `chunk_type`, `name`, `code`, and line ranges.
 
 ### 5. Resolving and Rendering Prompts (`prompt_builder/prompt_templates.py`)
 - **Function**: `render_prompt(ctx, file_name)`
@@ -46,6 +47,7 @@ For every chunk in the input data:
         4. Global Default: `("*", "*")`
       - Returns the selected builder function (e.g., `build_class_prompt` or `build_standard_prompt`).
   - The builder function (e.g., `build_standard_prompt(ctx)`) renders the markdown prompt using `textwrap.dedent` and f-strings.
+  - **Batching**: If `batch_size > 1`, `build_batch_prompt` is used to group multiple chunks into a single XML-tagged prompt, reducing API latency and cost.
   - Replaces the `{file_name}` placeholder in the template with the actual source filename.
 
 ### 6. Injecting Few-Shot Examples (`prompt_builder/build_prompts.py`)

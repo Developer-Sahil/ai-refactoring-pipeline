@@ -220,6 +220,9 @@ def run(
     if dry_run:
         logger.info("[DRY RUN] Completed. No files modified.")
     else:
+        if success_count == 0 and len(prompts) > 0:
+            logger.error("No chunks were successfully refactored. Check API keys/limits.")
+            sys.exit(1)
         logger.info("Completed %d/%d refactorings successfully. Output: %s", success_count, len(prompts), dest_file)
 
 

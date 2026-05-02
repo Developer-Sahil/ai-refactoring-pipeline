@@ -21,9 +21,14 @@ graph TD
 
     subgraph "Stage 3: LLM Agent (Execution)"
         K --> L[Nested Chunk Filter]
-        L --> M[Gemma 3 1B API]
+        L --> M[Gemma 3 Family API (1B-27B)]
         M --> P[Bottom-Up Code Reassembly]
         P --> Q[Output .refactored.py]
+    end
+
+    subgraph "Stage 3.5: Auto-Fix (Linting)"
+        Q --> Q1[Ruff Linting/Formatting]
+        Q1 --> Q2[PEP 8 Cleanup]
     end
 
     subgraph "Stage 4: Validator (Verification)"
@@ -37,7 +42,7 @@ graph TD
     end
 
     subgraph "Infrastructure"
-        R[llm_client.py] -.-> N[Gemma 3 1B API]
+        R[llm_client.py] -.-> N[Gemma 3 Family]
         T[Global Context Block] -.-> M
     end
 ```
@@ -58,8 +63,12 @@ graph TD
 *   **Strategy**: To prevent file corruption when refactoring nested methods, the agent now calculates the "Inclusivity Scope" for every prompt. 
 *   **Rule**: If `Chunk A` is contained within `Chunk B`, its prompt is automatically skipped during execution, as the parent's refactoring inherently includes the child.
 
-### 4. Transition to Gemma 3 1B
-*   **Reasoning**: Upgraded the core engine to `gemma-3-1b` to leverage its superior reasoning capabilities and high token limits.
+### 4. Transition to Gemma 3 Family
+*   **Reasoning**: Upgraded the core engine to the `Gemma 3` family (1B, 4B, 12B, 27B) to provide a spectrum of reasoning capabilities. Higher parameter models are used for complex architectural transformations, while 1B ensures speed for documentation-only tasks.
+
+### 4.5 Automated Style Enforcement (Stage 3.5)
+*   **Linting**: Integrated `ruff` (format and fix) into the pipeline lifecycle.
+*   **Benefit**: Ensures that all refactored output is PEP 8 compliant and free from common linting regressions before reaching the validator.
 
 ### 5. Automated Validation Gate (Stage 4)
 *   **Syntax & AST**: Verifies compilation correctness and structural integrity.
@@ -82,7 +91,7 @@ graph TD
 *   **Polling Fallback**: The frontend is equipped with a polling mechanism to ensure status updates are received even if WebSocket connections are interrupted.
 
 ### 3. Scalable File Handling
-*   **Isolated Workspaces**: Every job is assigned a unique UUID and a dedicated workspace in `backend/uploads/{job_id}/`, preventing cross-job file collisions and ensuring thread-safe processing.
+*   **Isolated Workspaces**: Every job is assigned a unique UUID. Input files are staged in `backend/input/uploads/{job_id}/` and results are written to `backend/output/{job_id}/`. This ensures complete data isolation and allows the system to handle hundreds of concurrent jobs without state leakage.
 *   **Archive Processing**: Automatic extraction and recursive processing of `.zip` uploads and folder-pickers.
 
 ---

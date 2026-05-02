@@ -228,6 +228,10 @@ def _advance_stage(job_id: str, stage: int) -> None:
 
 def _run_pipeline(job_id: str, py_files: list[Path], config: dict) -> None:
     """Run orchestrate.py against one or more .py files."""
+    # Create job-specific output directory
+    job_output_dir = OUTPUT_DIR / job_id
+    job_output_dir.mkdir(parents=True, exist_ok=True)
+    
     _advance_stage(job_id, 1)
 
     cmd = [
@@ -237,24 +241,53 @@ def _run_pipeline(job_id: str, py_files: list[Path], config: dict) -> None:
         "--model",      config["model"],
         "--batch-size", str(config["batch_size"]),
         "--delay",      str(config["delay"]),
+        "--output-dir", str(job_output_dir),
     ]
     if config.get("in_place"):
         cmd.append("--in-place")
     if config.get("no_functional"):
         cmd.append("--no-functional")
 
-    # Timed stage advancement (best-effort estimate while subprocess runs)
-    t2 = threading.Timer(8.0,  _advance_stage, args=(job_id, 2))
-    t3 = threading.Timer(16.0, _advance_stage, args=(job_id, 3))
-    t4 = threading.Timer(24.0, _advance_stage, args=(job_id, 4))
-    t2.start(); t3.start(); t4.start()
+    # Subprocess execution
+    full_stdout = []
+    full_stderr = []
+
+    def read_stream(stream, collection, is_stdout=False):
+        """Read lines from a stream and detect stage markers."""
+        try:
+            for line in iter(stream.readline, ""):
+                if not line: break
+                collection.append(line)
+                if is_stdout and "::STAGE::" in line:
+                    try:
+                        parts = line.strip().split("::")
+                        if len(parts) >= 3:
+                            # Extract stage number (can be float, e.g. 3.5)
+                            s_num = float(parts[2])
+                            # Extract optional label
+                            s_label = parts[3] if len(parts) >= 4 else STAGE_LABELS.get(int(s_num), "running")
+                            
+                            # Record the exact timestamp for this stage advancement
+                            now_iso = datetime.now(timezone.utc).isoformat()
+                            
+                            # Update job state
+                            with _ws_lock:
+                                if job_id in _jobs:
+                                    _jobs[job_id]["stage"] = s_num
+                                    _jobs[job_id]["stage_label"] = s_label
+                                    _jobs[job_id]["stage_times"][str(s_num)] = now_iso
+                                    _jobs[job_id]["updated_at"] = now_iso
+                            
+                            _broadcast(job_id, _jobs[job_id])
+                    except Exception as e:
+                        print(f"[WS] Error parsing stage marker: {e}")
+        except Exception:
+            pass
 
     try:
         env = os.environ.copy()
         env["PYTHONUTF8"] = "1"
         
-        # Use CREATE_NEW_PROCESS_GROUP on Windows so we can kill the
-        # entire child tree (orchestrate.py spawns further subprocesses).
         creation_flags = 0
         if sys.platform == "win32":
             creation_flags = subprocess.CREATE_NEW_PROCESS_GROUP
@@ -274,27 +307,38 @@ def _run_pipeline(job_id: str, py_files: list[Path], config: dict) -> None:
         with _proc_lock:
             _active_processes[job_id] = process
             
+        # Start monitoring threads
+        t_out = threading.Thread(target=read_stream, args=(process.stdout, full_stdout, True), daemon=True)
+        t_err = threading.Thread(target=read_stream, args=(process.stderr, full_stderr, False), daemon=True)
+        t_out.start(); t_err.start()
+
         try:
-            stdout, stderr = process.communicate(timeout=600)
+            # Wait for completion or timeout
+            # We use wait() because we are reading streams in threads
+            process.wait(timeout=1800)
         except subprocess.TimeoutExpired:
             _kill_process_tree(process)
-            stdout, stderr = process.communicate()
-            raise subprocess.TimeoutExpired(cmd, 600, stdout, stderr)
+            process.wait()
+            raise
         finally:
             with _proc_lock:
                 _active_processes.pop(job_id, None)
+            # Ensure threads finish
+            t_out.join(timeout=2.0)
+            t_err.join(timeout=2.0)
 
-        # Check if we were cancelled while running
+        stdout = "".join(full_stdout)
+        stderr = "".join(full_stderr)
+
+        # Check if we were cancelled
         if _jobs.get(job_id, {}).get("status") == "cancelled":
             return
 
     except subprocess.TimeoutExpired:
-        for t in (t2, t3, t4): t.cancel()
         _update_job(job_id, stage=0, stage_label="idle", status="failed",
-                    error="Pipeline timed out after 10 minutes.")
+                    error="Pipeline timed out after 30 minutes. Large projects or API rate limits may be the cause.")
         return
     except Exception as exc:
-        for t in (t2, t3, t4): t.cancel()
         _update_job(job_id, stage=0, stage_label="idle", status="failed",
                     error=str(exc))
         return
@@ -306,10 +350,12 @@ def _run_pipeline(job_id: str, py_files: list[Path], config: dict) -> None:
     primary_code: str | None = None
     primary_report: dict = {}
 
+    job_output_dir = OUTPUT_DIR / job_id
+
     for py_path in py_files:
         stem = py_path.stem
-        refactored_file = OUTPUT_DIR / f"{stem}.refactored.py"
-        report_json     = OUTPUT_DIR / f"{stem}_validation_report.json"
+        refactored_file = job_output_dir / f"{stem}.refactored.py"
+        report_json     = job_output_dir / f"{stem}_validation_report.json"
 
         code = refactored_file.read_text(encoding="utf-8") if refactored_file.exists() else None
         report: dict = {}
@@ -400,7 +446,7 @@ def health_check():
 @app.post("/api/v1/refactor", tags=["Pipeline"], status_code=202)
 async def submit_refactor_job(
     files:         List[UploadFile] = File(...),
-    model:         str   = Form("gemma-3-1b"),
+    model:         str   = Form("gemma-3-1b-it"),
     batch_size:    int   = Form(3),
     delay:         float = Form(2.0),
     in_place:      bool  = Form(False),

@@ -109,6 +109,8 @@ def _run(command: str, env: dict | None = None, description: str = "") -> int:
     global _active_child
     print(f"\n--- Running: {description} ---")
     print(f"Command: {command}")
+    env = (env or os.environ).copy()
+    env["PYTHONUTF8"] = "1"
     _active_child = subprocess.Popen(command, env=env, shell=True)
     rc = _active_child.wait()
     _active_child = None
@@ -289,6 +291,7 @@ def _stages_1_to_3(
             env=cast_env, description=f"Stage 1: cAST{sfx} - {fn}") != 0:
         return False, False, False
 
+    print(f"::STAGE::2::Prompt Builder")
     pb_env = os.environ.copy()
     pb_env["PYTHONPATH"] = str(pipeline_dir / "prompt_builder")
     if _run(
@@ -298,6 +301,7 @@ def _stages_1_to_3(
     ) != 0:
         return True, False, False
 
+    print(f"::STAGE::3::LLM Agent")
     la_env = os.environ.copy()
     la_env["PYTHONPATH"] = str(pipeline_dir / "llm_agent")
     la_cmd = (
@@ -308,6 +312,21 @@ def _stages_1_to_3(
         la_cmd += " --in-place"
     rc3 = _run(la_cmd, env=la_env, description=f"Stage 3: LLM Agent{sfx} - {fn}")
     return True, True, (rc3 == 0)
+
+
+def _stage_3_5(refactored: Path, tag: str = "") -> bool:
+    """Run ruff to fix style issues before validation."""
+    if not refactored.exists():
+        return False
+    
+    sfx = f" [{tag}]" if tag else ""
+    # Try ruff format
+    _run(f'python -m ruff format "{refactored}"', 
+         description=f"Stage 3.5: Linter Format{sfx} - {refactored.name}")
+    # Try ruff check --fix (silently)
+    _run(f'python -m ruff check --fix "{refactored}"', 
+         description=f"Stage 3.5: Linter Fix{sfx} - {refactored.name}")
+    return True
 
 
 def _stage_4(
@@ -367,7 +386,7 @@ def _stage_4(
 def main() -> None:
     parser = argparse.ArgumentParser(description="AI Code Refactoring Pipeline")
     parser.add_argument("inputs", nargs="+")
-    parser.add_argument("--model",          default="gemma-3-1b")
+    parser.add_argument("--model",          default="gemma-3-1b-it")
     parser.add_argument("--in-place",       action="store_true")
     parser.add_argument("--delay",          type=float, default=2.0)
     parser.add_argument("--batch-size",     type=int,   default=3)
@@ -375,6 +394,7 @@ def main() -> None:
                         help="Skip the automatic retry pass for failed files")
     parser.add_argument("--no-functional",  action="store_true",
                         help="Skip functional/behavioral validation in Stage 4")
+    parser.add_argument("--output-dir",     help="Explicit output directory")
     args = parser.parse_args()
 
     # Collect source files
@@ -394,8 +414,8 @@ def main() -> None:
 
     root_dir     = Path(__file__).parent.resolve()
     pipeline_dir = root_dir / "pipeline"
-    output_dir   = root_dir / "output"
-    output_dir.mkdir(exist_ok=True)
+    output_dir   = Path(args.output_dir).resolve() if args.output_dir else root_dir / "output"
+    output_dir.mkdir(parents=True, exist_ok=True)
 
     total   = len(source_files)
     results: list[FileResult] = []
@@ -419,6 +439,7 @@ def main() -> None:
         r = FileResult(filename=filename, original_path=input_path,
                        refactored_path=refactored)
 
+        print(f"::STAGE::1::cAST")
         s1, s2, s3 = _stages_1_to_3(
             input_path, output_dir, pipeline_dir,
             chunks_file, prompts_file,
@@ -427,6 +448,9 @@ def main() -> None:
         r.stage1_ok, r.stage2_ok, r.stage3_ok = s1, s2, s3
 
         if s3 and refactored.exists():
+            print(f"::STAGE::3.5::Linting/Auto-fix")
+            _stage_3_5(refactored)
+            print(f"::STAGE::4::Validator")
             v = _stage_4(input_path, refactored, output_dir, pipeline_dir, stem,
                          no_functional=args.no_functional)
             r.val_passed   = v["passed"]
@@ -517,6 +541,9 @@ def main() -> None:
                 continue
 
             # Stage 4: re-validate
+            print(f"::STAGE::3.5::Linting/Auto-fix [RETRY]")
+            _stage_3_5(refactored, tag="RETRY")
+            print(f"::STAGE::4::Validator [RETRY]")
             v = _stage_4(
                 input_path, refactored, output_dir, pipeline_dir, stem,
                 tag="RETRY", no_functional=args.no_functional,

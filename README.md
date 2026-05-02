@@ -22,8 +22,9 @@ graph LR
 
 1.  **Stage 1: cAST (Deconstruction)**: Parses source files into an AST to identify logical chunks (classes, methods, functions).
 2.  **Stage 2: Prompt Builder (Transformation)**: Injects global architectural context and applies "Senior Architect" persona templates.
-3.  **Stage 3: LLM Agent (Execution)**: Utilizes **Gemma 3 1B** for intelligent code renovation with nested chunk filtering.
-4.  **Stage 4: Validator (Verification)**: Performs syntax checks, AST integrity comparison, and async-aware functional parity testing.
+3.  **Stage 3: LLM Agent (Execution)**: Utilizes the **Gemma 3 Family** (1B, 4B, 12B, 27B) for intelligent code renovation.
+4.  **Stage 3.5: Auto-Fix (Linting)**: Integrates `ruff` to automatically enforce PEP 8 and fix minor style regressions.
+5.  **Stage 4: Validator (Verification)**: Performs syntax checks, AST integrity comparison, and functional parity testing.
 
 ---
 
@@ -58,6 +59,7 @@ root/
 │   └── DEPLOYMENT.md    # Production setup and Firebase Auth
 ├── docker-compose.ymal  # Deployment configuration
 ├── README.md            # You are here
+├── LOGIC_MAP.md         # Full logic flow and data maps
 └── LOG.md               # Change history and developer journal
 ```
 
@@ -101,6 +103,7 @@ python backend/orchestrate.py backend/input/source_file.py --model gemma-3-1b
 | Resource | Description |
 |----------|-------------|
 | [ARCHITECTURE.md](file:///c:/dev/SDP/docs/ARCHITECTURE.md) | High-Level and Low-Level Design (HLD/LLD) |
+| [LOGIC_MAP.md](file:///c:/dev/SDP/LOGIC_MAP.md) | Full Logic Flow & Data Maps |
 | [API.md](file:///c:/dev/SDP/docs/API.md) | REST & WebSocket API Specification |
 | [LOG.md](file:///c:/dev/SDP/LOG.md) | Full version history and recent bugfixes |
 | [AUDIT.md](file:///c:/dev/SDP/docs/AUDIT.md) | Architectural audit and validation reports |
